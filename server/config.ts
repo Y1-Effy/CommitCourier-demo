@@ -1,0 +1,23 @@
+import "dotenv/config";
+
+/** Runtime configuration, loaded from the environment (see .env.example). */
+export const config = {
+  databaseUrl: process.env.DATABASE_URL ?? "",
+  /** This site's own public URL — the dispatcher delivers webhooks to `${publicBaseUrl}/receiver`. */
+  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:8787",
+  /** Standard Webhooks signing secret (must be "whsec_" + base64). */
+  webhookSecret: process.env.DEMO_WEBHOOK_SECRET ?? "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",
+  port: Number(process.env.PORT ?? 8787),
+  isProd: process.env.NODE_ENV === "production",
+};
+
+if (!config.databaseUrl) {
+  throw new Error(
+    "DATABASE_URL is not set. Copy .env.example to .env and point it at a PostgreSQL database.",
+  );
+}
+
+/** Whether to use TLS for the pg connection (managed Postgres needs it; local does not). */
+export function needsSsl(url: string): boolean {
+  return !/localhost|127\.0\.0\.1/.test(url);
+}
