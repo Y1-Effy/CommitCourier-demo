@@ -35,7 +35,8 @@ The dispatcher delivers to **this site's own** receiver only — visitor input n
 
 ```bash
 npm install
-cp .env.example .env          # then set DATABASE_URL
+cp .env.example .env          # the defaults match the Docker DB below — no edits needed
+npm run db:up                 # start a local Postgres in Docker (waits until healthy)
 npm run migrate               # create the CommitCourier + demo tables (once)
 npm run dev                   # Vite on :5173 (proxies API to the server on :8787)
 ```
@@ -44,7 +45,18 @@ Open http://localhost:5173. The frontend proxies `/api` and `/receiver` to the N
 
 > Locally, use `PUBLIC_BASE_URL=http://127.0.0.1:8787` (not `localhost` — it resolves to IPv6 `::1` first, which the SSRF guard blocks). The receiver host is allowlisted automatically from `PUBLIC_BASE_URL`.
 
-Need a throwaway database? `docker run -d --name pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=commitcourier_demo -p 5432:5432 postgres:16` and use `DATABASE_URL=postgres://postgres:postgres@localhost:5432/commitcourier_demo`.
+### Database via Docker
+
+`docker-compose.yml` defines a local Postgres whose credentials match the `.env.example`
+default `DATABASE_URL`, so no extra configuration is needed.
+
+- `npm run db:up` — start it (blocks until healthy) · `npm run db:down` — stop it
+- `npm run db:reset` — drop the volume, recreate, and re-migrate · `npm run db:logs` — tail logs
+
+In **VSCode**, just press **F5** ("Debug server" / "Debug full stack"): a `preLaunchTask`
+brings the DB up and runs `migrate` automatically before the server starts. Requires a
+running Docker Desktop. Prefer a managed Postgres (Neon/Supabase) instead? Point
+`DATABASE_URL` at it and skip the `db:*` scripts.
 
 ## Build & run for production
 

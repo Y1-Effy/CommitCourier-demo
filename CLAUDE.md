@@ -41,7 +41,8 @@ metrics 更新 & SSE broadcast → フロントが live 更新。
 
 ```bash
 npm install
-cp .env.example .env          # DATABASE_URL を設定
+cp .env.example .env          # 既定値は docker-compose の DB と一致（編集不要）
+npm run db:up                 # ローカル Postgres を Docker で起動（healthy 待ち）
 npm run migrate               # スキーマ作成（初回のみ）
 npm run dev                   # Vite :5173（/api と /receiver を :8787 にプロキシ）
 ```
@@ -50,6 +51,11 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
 - `npm run build` — フロントを web/dist へバンドル。
 - `npm start` — 本番: 1プロセスで API + dispatcher + web/dist 配信。
 - `npm run migrate` — DDL 適用。`store.migrate()` は冪等。
+- `npm run db:up` / `db:down` / `db:reset` / `db:logs` — `docker-compose.yml` の Postgres を操作。
+  `db:reset` は volume ごと破棄して再作成 + migrate。`.env.example` の既定 `DATABASE_URL` と一致。
+- **VSCode の F5**（"Debug server" / "Debug full stack"）は `preLaunchTask: db-ready`
+  （`.vscode/tasks.json`）で DB 起動 → migrate を自動実行してからサーバを起動する。Docker 必須。
+  managed Postgres を使うなら `DATABASE_URL` を向けて `db:*` をスキップ。
 
 ## 品質チェック（lint / test / CI）
 

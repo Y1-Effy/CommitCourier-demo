@@ -10,6 +10,7 @@
       "runtimeArgs": ["--import", "tsx"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
+      "preLaunchTask": "db-ready",
       "skipFiles": ["<node_internals>/**"]
     },
     {
