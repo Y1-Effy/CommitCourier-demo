@@ -1,4 +1,6 @@
 import { CodeBlock } from "../components/CodeBlock";
+import { useCopy, type Locale } from "../i18n";
+import type { ReactNode } from "react";
 
 const INSTALL = `npm install commitcourier pg`;
 
@@ -63,14 +65,118 @@ const ok = await verifySignature({
   secrets: [process.env.WEBHOOK_SECRET],
 });`;
 
+const STEP_CODE = [STEP1, STEP2, STEP3, STEP4, RECEIVER] as const;
+
+interface IntegrateCopy {
+  eyebrow: string;
+  heading: string;
+  intro: ReactNode;
+  callout: ReactNode;
+  steps: [string, string][];
+  footer: ReactNode;
+}
+
+const en: IntegrateCopy = {
+  eyebrow: "Integration",
+  heading: "Add reliable webhooks in five steps",
+  intro: (
+    <>
+      This is the exact integration powering the <a href="#/demo">live demo</a> — the same code
+      lives in <span className="kbd">server/courier.ts</span> and{" "}
+      <span className="kbd">server/routes.ts</span> of this repo. Framework-agnostic; works with
+      Express, Fastify, Nest, or none.
+    </>
+  ),
+  callout: (
+    <>
+      Drivers: <span className="kbd">pg</span> and <span className="kbd">knex</span> are supported
+      as optional peers (Drizzle / Prisma too). Install whichever you use.
+    </>
+  ),
+  steps: [
+    [
+      "Create the tables",
+      "One idempotent migration adds the outbox / attempts / endpoints tables to your existing database.",
+    ],
+    [
+      "Create the relay",
+      "Async: it validates config and fails fast if the tables are missing. All options shown with sane defaults.",
+    ],
+    [
+      "Enqueue inside your transaction",
+      "enqueue takes the transaction handle as its required first argument. This is the whole guarantee.",
+    ],
+    [
+      "Run the dispatcher",
+      "Delivers due rows in the background. Run it in-process or in a dedicated worker — several copies are safe.",
+    ],
+    [
+      "Verify on the receiving end",
+      "Standard Webhooks signatures — receivers verify with the bundled helper or any off-the-shelf library.",
+    ],
+  ],
+  footer: (
+    <>
+      Watch every one of these steps execute against a real database on the{" "}
+      <a href="#/demo">live demo →</a>
+    </>
+  ),
+};
+
+const ja: IntegrateCopy = {
+  eyebrow: "組み込み方",
+  heading: "信頼できる Webhook を5ステップで追加",
+  intro: (
+    <>
+      これは<a href="#/demo">ライブデモ</a>を動かしているのとまったく同じ組み込みコードです —
+      同じものが このリポジトリの <span className="kbd">server/courier.ts</span> と{" "}
+      <span className="kbd">server/routes.ts</span>{" "}
+      にあります。フレームワーク非依存で、Express・Fastify・ Nest でも、何もなくても動きます。
+    </>
+  ),
+  callout: (
+    <>
+      ドライバ: <span className="kbd">pg</span> と <span className="kbd">knex</span> をオプションの
+      peer として対応 (Drizzle / Prisma も)。使うものだけインストールしてください。
+    </>
+  ),
+  steps: [
+    [
+      "テーブルを作成",
+      "冪等なマイグレーション1つで、既存のデータベースに outbox / attempts / endpoints テーブルを追加します。",
+    ],
+    [
+      "relay を作成",
+      "非同期: 設定を検証し、テーブルが無ければ即座に失敗します。全オプションを妥当な既定値つきで掲載。",
+    ],
+    [
+      "トランザクション内で enqueue",
+      "enqueue は第1引数（必須）にトランザクションハンドルを取ります。これが保証のすべてです。",
+    ],
+    [
+      "dispatcher を起動",
+      "期限の来た行をバックグラウンドで配信します。同一プロセスでも専用ワーカーでも、複数起動しても安全です。",
+    ],
+    [
+      "受信側で検証",
+      "Standard Webhooks の署名 — 受信側は同梱ヘルパーや任意の既製ライブラリで検証できます。",
+    ],
+  ],
+  footer: (
+    <>
+      これら全ステップが実際のデータベースに対して動く様子を<a href="#/demo">ライブデモ →</a>
+      で確認できます。
+    </>
+  ),
+};
+
+const copy: Record<Locale, IntegrateCopy> = { en, ja };
+
 function Step({ n, title, sub, code }: { n: number; title: string; sub: string; code: string }) {
   return (
     <div style={{ marginBottom: 26 }}>
       <div className="row" style={{ alignItems: "baseline" }}>
-        <span
-          className="pill delivered"
-          style={{ fontFamily: "var(--mono)", fontSize: 13 }}
-        >
+        <span className="pill delivered" style={{ fontFamily: "var(--mono)", fontSize: 13 }}>
           {n}
         </span>
         <h2 className="section" style={{ margin: 0 }}>
@@ -86,62 +192,29 @@ function Step({ n, title, sub, code }: { n: number; title: string; sub: string; 
 }
 
 export function Integrate() {
+  const t = useCopy(copy);
   return (
     <div className="container">
-      <div className="eyebrow">Integration</div>
+      <div className="eyebrow">{t.eyebrow}</div>
       <h2 className="section" style={{ fontSize: 32 }}>
-        Add reliable webhooks in five steps
+        {t.heading}
       </h2>
-      <p className="sub">
-        This is the exact integration powering the <a href="#/demo">live demo</a> — the same code
-        lives in <span className="kbd">server/courier.ts</span> and{" "}
-        <span className="kbd">server/routes.ts</span> of this repo. Framework-agnostic; works with
-        Express, Fastify, Nest, or none.
-      </p>
+      <p className="sub">{t.intro}</p>
 
       <div className="callout" style={{ margin: "12px 0 24px" }}>
-        Drivers: <span className="kbd">pg</span> and <span className="kbd">knex</span> are supported
-        as optional peers (Drizzle / Prisma too). Install whichever you use.
+        {t.callout}
       </div>
 
       <CodeBlock code={INSTALL} lang="bash" />
       <div style={{ height: 28 }} />
 
-      <Step
-        n={1}
-        title="Create the tables"
-        sub="One idempotent migration adds the outbox / attempts / endpoints tables to your existing database."
-        code={STEP1}
-      />
-      <Step
-        n={2}
-        title="Create the relay"
-        sub="Async: it validates config and fails fast if the tables are missing. All options shown with sane defaults."
-        code={STEP2}
-      />
-      <Step
-        n={3}
-        title="Enqueue inside your transaction"
-        sub="enqueue takes the transaction handle as its required first argument. This is the whole guarantee."
-        code={STEP3}
-      />
-      <Step
-        n={4}
-        title="Run the dispatcher"
-        sub="Delivers due rows in the background. Run it in-process or in a dedicated worker — several copies are safe."
-        code={STEP4}
-      />
-      <Step
-        n={5}
-        title="Verify on the receiving end"
-        sub="Standard Webhooks signatures — receivers verify with the bundled helper or any off-the-shelf library."
-        code={RECEIVER}
-      />
+      {t.steps.map(([title, sub], i) => (
+        <Step key={title} n={i + 1} title={title} sub={sub} code={STEP_CODE[i] ?? ""} />
+      ))}
 
       <div className="card" style={{ textAlign: "center", marginTop: 12 }}>
         <p className="sub" style={{ margin: 0 }}>
-          Watch every one of these steps execute against a real database on the{" "}
-          <a href="#/demo">live demo →</a>
+          {t.footer}
         </p>
       </div>
     </div>
