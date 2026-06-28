@@ -30,6 +30,7 @@ interface LiveDemoCopy {
   toastCommit: (eventType: string) => string;
   toastRollback: (eventType: string) => string;
   toastSsrf: string;
+  errorToast: string;
   rcvEyebrow: string;
   rcvTitle: string;
   rcvSub: ReactNode;
@@ -82,6 +83,7 @@ const en: LiveDemoCopy = {
   toastCommit: (e) => `Enqueued ${e} (committed → will be delivered)`,
   toastRollback: (e) => `Rolled back ${e} (no row written — dual-write safe)`,
   toastSsrf: "Enqueued a delivery to the cloud-metadata IP — watch it get SSRF-blocked.",
+  errorToast: "Request failed (rate limited?). Try again.",
   rcvEyebrow: "2 · Receiver",
   rcvTitle: "Flaky endpoint simulator",
   rcvSub: (
@@ -144,6 +146,7 @@ const ja: LiveDemoCopy = {
   toastRollback: (e) => `${e} をロールバック (行は書かれていない — 二重書き込み安全)`,
   toastSsrf:
     "クラウドメタデータ IP への配信を enqueue しました — SSRF でブロックされる様子を見てください。",
+  errorToast: "リクエスト失敗 (レート制限?)。少し待って再試行してください。",
   rcvEyebrow: "2 · Receiver",
   rcvTitle: "不安定なエンドポイントの模擬",
   rcvSub: (
@@ -203,6 +206,9 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
         body: { commit },
       });
       onAction(commit ? t.toastCommit(r.eventType) : t.toastRollback(r.eventType));
+    } catch (e) {
+      console.error(e);
+      onAction(t.errorToast);
     } finally {
       setBusy(false);
     }
@@ -212,6 +218,9 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
     try {
       await api("/enqueue-ssrf", { body: {} });
       onAction(t.toastSsrf);
+    } catch (e) {
+      console.error(e);
+      onAction(t.errorToast);
     } finally {
       setBusy(false);
     }
@@ -244,9 +253,16 @@ function ReceiverControl({
 }: {
   t: LiveDemoCopy;
   mode: string;
-  recent: { eventType: string; verified: boolean; responded: number; at: string }[];
+  recent: {
+    webhookId: string;
+    eventType: string;
+    verified: boolean;
+    responded: number;
+    at: string;
+  }[];
 }) {
-  const set = (m: string) => api("/receiver/mode", { body: { mode: m } });
+  const set = (m: string) =>
+    api("/receiver/mode", { body: { mode: m } }).catch((e) => console.error(e));
   const modes: Mode[] = ["ok", "fail", "slow"];
   return (
     <div className="card">
@@ -268,8 +284,8 @@ function ReceiverControl({
           {t.recentLabel}
         </div>
         {recent.length === 0 && <div className="muted">{t.nothingYet}</div>}
-        {recent.map((r, i) => (
-          <div key={i} className="row" style={{ fontSize: 12, gap: 8 }}>
+        {recent.map((r) => (
+          <div key={r.webhookId} className="row" style={{ fontSize: 12, gap: 8 }}>
             <span className="mono">{r.eventType}</span>
             <span className={r.verified ? "pill delivered" : "pill dead"}>
               {r.verified ? t.sigOk : t.sigBad}
@@ -324,8 +340,8 @@ function AttemptsDrawer({ t, id }: { t: LiveDemoCopy; id: string }) {
 
 function OutboxTable({ t, rows }: { t: LiveDemoCopy; rows: OutboxItem[] }) {
   const [open, setOpen] = useState<string | null>(null);
-  const replayDlq = () => api("/replay", { body: {} });
-  const cancel = (id: string) => api(`/cancel/${id}`, { body: {} });
+  const replayDlq = () => api("/replay", { body: {} }).catch((e) => console.error(e));
+  const cancel = (id: string) => api(`/cancel/${id}`, { body: {} }).catch((e) => console.error(e));
   const deadCount = rows.filter((r) => r.status === "dead").length;
   return (
     <div className="card">
@@ -460,8 +476,12 @@ export function LiveDemo() {
         </h2>
         {feed.length === 0 && <p className="muted">{t.feedEmpty}</p>}
         <div style={{ maxHeight: 200, overflow: "auto", fontFamily: "var(--mono)", fontSize: 13 }}>
-          {feed.map((f, i) => (
-            <div key={i} className="row" style={{ gap: 8 }}>
+          {feed.map((f) => (
+            <div
+              key={`${f.event.id}-${f.outcome}-${f.event.attempt}`}
+              className="row"
+              style={{ gap: 8 }}
+            >
               <span
                 className={`pill ${f.outcome === "delivered" ? "delivered" : f.outcome === "dead" ? "dead" : "in_flight"}`}
               >

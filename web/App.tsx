@@ -51,10 +51,20 @@ export function App() {
             {labels[id]}
           </a>
         ))}
-        <a className="tab" href="https://www.npmjs.com/package/commitcourier" target="_blank">
+        <a
+          className="tab"
+          href="https://www.npmjs.com/package/commitcourier"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           npm ↗
         </a>
-        <a className="tab" href="https://github.com/Y1-Effy/CommitCourier" target="_blank">
+        <a
+          className="tab"
+          href="https://github.com/Y1-Effy/CommitCourier"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           GitHub ↗
         </a>
         <LocaleToggle />
