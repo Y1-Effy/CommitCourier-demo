@@ -49,7 +49,13 @@ export interface SnapshotEvent {
 export interface DeliveryEvent {
   type: "delivery";
   outcome: "delivered" | "retry" | "dead";
-  event: { id: string; eventType: string; attempt: number; status: number | null; error: string | null };
+  event: {
+    id: string;
+    eventType: string;
+    attempt: number;
+    status: number | null;
+    error: string | null;
+  };
 }
 export interface ReceivedRecord {
   webhookId: string;

@@ -15,12 +15,7 @@
  */
 import { Pool, type PoolClient } from "pg";
 import { postgresStore } from "commitcourier/store/pg";
-import {
-  createRelay,
-  createConsoleLogger,
-  type Relay,
-  type DeliveryHooks,
-} from "commitcourier";
+import { createRelay, createConsoleLogger, type Relay, type DeliveryHooks } from "commitcourier";
 import { config, needsSsl } from "./config";
 
 // The dispatcher delivers to THIS site's own receiver. In production that's a public host (which

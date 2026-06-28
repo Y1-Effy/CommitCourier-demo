@@ -8,7 +8,7 @@ A small, deployable site that **runs [CommitCourier](https://www.npmjs.com/packa
 - **Playground** — `commitcourier/core` (dependency-free, Web-standard-only) running **in your browser**: sign/verify, SSRF eval, backoff, AES-GCM cipher, the state machine.
 - **Track record** — durable operational counters from the live database.
 
-> This is a *consumer* of CommitCourier — it installs `commitcourier` straight from npm. The library itself is not vendored here.
+> This is a _consumer_ of CommitCourier — it installs `commitcourier` straight from npm. The library itself is not vendored here.
 
 ## Architecture
 
@@ -65,12 +65,12 @@ In production `PUBLIC_BASE_URL` is a public host, so the SSRF guard passes it no
 
 ## Environment variables
 
-| Var | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string (TLS auto-enabled for non-local hosts). |
-| `PUBLIC_BASE_URL` | This site's own URL; webhooks are delivered to `${PUBLIC_BASE_URL}/receiver`. |
-| `DEMO_WEBHOOK_SECRET` | Standard Webhooks signing secret (`whsec_` + base64). |
-| `PORT` | Server port (default 8787). |
+| Var                   | Purpose                                                                       |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `DATABASE_URL`        | PostgreSQL connection string (TLS auto-enabled for non-local hosts).          |
+| `PUBLIC_BASE_URL`     | This site's own URL; webhooks are delivered to `${PUBLIC_BASE_URL}/receiver`. |
+| `DEMO_WEBHOOK_SECRET` | Standard Webhooks signing secret (`whsec_` + base64).                         |
+| `PORT`                | Server port (default 8787).                                                   |
 
 ## License
 

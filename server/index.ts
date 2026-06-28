@@ -98,9 +98,7 @@ async function main() {
   // Retention: keep the demo DB small and tidy (terminal rows older than 1h).
   const pruneTimer = setInterval(
     () => {
-      void relay
-        .prune({ olderThan: new Date(Date.now() - 60 * 60 * 1000) })
-        .catch(() => undefined);
+      void relay.prune({ olderThan: new Date(Date.now() - 60 * 60 * 1000) }).catch(() => undefined);
     },
     10 * 60 * 1000,
   );

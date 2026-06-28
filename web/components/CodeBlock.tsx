@@ -18,7 +18,10 @@ function highlight(code: string): string {
         tail = `<span class="tok-com">${line.slice(commentIdx)}</span>`;
       }
       head = head
-        .replace(/(&quot;|&#39;|"|'|`)(?:\\.|(?!\1).)*\1/g, (m) => `<span class="tok-str">${m}</span>`)
+        .replace(
+          /(&quot;|&#39;|"|'|`)(?:\\.|(?!\1).)*\1/g,
+          (m) => `<span class="tok-str">${m}</span>`,
+        )
         .replace(keywords, '<span class="tok-key">$1</span>')
         .replace(/\b(\d[\d_]*)\b/g, '<span class="tok-num">$1</span>')
         .replace(/\b([a-zA-Z_]\w*)(?=\()/g, '<span class="tok-fn">$1</span>');
@@ -40,10 +43,7 @@ export function CodeBlock({ code, lang = "ts" }: { code: string; lang?: string }
         {copied ? "Copied" : "Copy"}
       </button>
       <pre>
-        <code
-          data-lang={lang}
-          dangerouslySetInnerHTML={{ __html: highlight(code.trim()) }}
-        />
+        <code data-lang={lang} dangerouslySetInnerHTML={{ __html: highlight(code.trim()) }} />
       </pre>
     </div>
   );
