@@ -68,9 +68,15 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
 - **lint:lang**（`scripts/check-no-cjk.mjs`）は **server/** のみ** CJK を検出して fail。コードは英語の
   ポリシーを機械強制する。**web/ は対象外**（i18n の日本語 UI コピーが正当に存在するため）。
   server 配下の .ts に日本語コメント等を書かないこと。
-- **テストは Vitest**（jsdom 環境）。`server/config.test.ts`（純関数）、`web/i18n/*.test.tsx`・
-  `web/components/*.test.tsx`（i18n / コンポーネント、testing-library）。`vitest.config.ts` が
-  `DATABASE_URL` のダミー値を注入し、`server/config.ts` の import 時 throw を回避している。
+- **テストは Vitest**（jsdom 環境）。**コロケーションではなく `test/` 配下にソース構成をミラー**して置く
+  （`vitest.config.ts` の `include: ["test/**/*.{test,spec}.{ts,tsx}"]` で固定）。例:
+  `test/server/config.test.ts`・`test/server/sse.test.ts`・`test/server/receiver.test.ts`（DB 不要の
+  サーバ単体。receiver は `express` を `listen(0)` + グローバル `fetch`、`commitcourier` の `sign` で
+  署名生成）、`test/web/i18n/*.test.tsx`・`test/web/components/*.test.tsx`（testing-library）。
+  ソースからの相対 import になる（例: `../../server/config`、`../../../web/i18n`）。`tsconfig.json` の
+  `include` に `test` を入れて型検査対象にしている。`vitest.config.ts` が `DATABASE_URL` のダミー値を
+  注入し、`server/config.ts` の import 時 throw を回避。`test/server/*` は英語、`test/web/*` の日本語
+  アサーション（`配信済み` 等）は `lint:lang`（server/ のみ対象）の対象外で正当。
 - **CI**: `.github/workflows/ci.yml` が push/PR で `npm run check` と `npm run build` を実行（Node 22.19）。
 
 ## 重要な制約・落とし穴

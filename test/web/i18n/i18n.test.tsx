@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { LocaleProvider, useLocale, useStatusLabel } from "./index";
+import { LocaleProvider, useLocale, useStatusLabel } from "../../../web/i18n/index";
 
 function wrapper({ children }: { children: ReactNode }) {
   return <LocaleProvider>{children}</LocaleProvider>;

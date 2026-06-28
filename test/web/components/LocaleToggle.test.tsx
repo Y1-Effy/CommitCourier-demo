@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { LocaleProvider } from "../i18n";
-import { LocaleToggle } from "./LocaleToggle";
+import { LocaleProvider } from "../../../web/i18n";
+import { LocaleToggle } from "../../../web/components/LocaleToggle";
 
 beforeEach(() => {
   localStorage.clear();

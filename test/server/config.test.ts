@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { needsSsl } from "./config";
+import { needsSsl } from "../../server/config";
 
 describe("needsSsl", () => {
   it("returns false for local hosts (no TLS needed)", () => {
