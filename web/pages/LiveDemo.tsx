@@ -29,10 +29,10 @@ interface LiveDemoCopy {
   btnIdem: string;
   ssrfHint: string;
   idemHint: string;
-  toastCommit: (eventType: string) => string;
+  toastCommit: (eventType: string, tag: string) => string;
   toastRollback: (eventType: string) => string;
-  toastSsrf: string;
-  toastIdem: string;
+  toastSsrf: (tag: string) => string;
+  toastIdem: (tags: string) => string;
   errorToast: string;
   dupLabel: string;
   rcvEyebrow: string;
@@ -41,6 +41,7 @@ interface LiveDemoCopy {
   modeLabels: Record<Mode, string>;
   modeDescs: Record<Mode, string>;
   recentLabel: string;
+  recentHint: string;
   nothingYet: string;
   sigOk: string;
   sigBad: string;
@@ -52,7 +53,7 @@ interface LiveDemoCopy {
   outTitle: string;
   replayDlq: (n: number) => string;
   clickRow: string;
-  outHeaders: [string, string, string, string, string, string];
+  outHeaders: [string, string, string, string, string, string, string];
   emptyOutbox: string;
   cancel: string;
   feedEyebrow: string;
@@ -86,10 +87,12 @@ const en: LiveDemoCopy = {
   btnIdem: "⇉ Same key ×2",
   ssrfHint: "Targets 169.254.169.254",
   idemHint: "Two at-least-once deliveries, one idempotency-key",
-  toastCommit: (e) => `Enqueued ${e} (committed → will be delivered)`,
+  toastCommit: (e, tag) => `Enqueued ${e} ${tag} (committed → will be delivered)`,
   toastRollback: (e) => `Rolled back ${e} (no row written — dual-write safe)`,
-  toastSsrf: "Enqueued a delivery to the cloud-metadata IP — watch it get SSRF-blocked.",
-  toastIdem: "Enqueued 2 deliveries sharing one idempotency-key — the receiver dedups the second.",
+  toastSsrf: (tag) =>
+    `Enqueued ${tag} to the cloud-metadata IP — watch it get SSRF-blocked (in the feed/state, not the receiver).`,
+  toastIdem: (tags) =>
+    `Enqueued 2 deliveries ${tags} sharing one idempotency-key — the receiver dedups the second.`,
   errorToast: "Request failed (rate limited?). Try again.",
   dupLabel: "duplicate ✓ ignored",
   rcvEyebrow: "2 · Receiver",
@@ -107,6 +110,7 @@ const en: LiveDemoCopy = {
     slow: "Exceed 5s timeout",
   },
   recentLabel: "Recently received (signature verified server-side):",
+  recentHint: "newest first ↓ · the #id tag matches the same event in send / state / feed",
   nothingYet: "— nothing yet —",
   sigOk: "sig ✓",
   sigBad: "sig ✗",
@@ -118,7 +122,7 @@ const en: LiveDemoCopy = {
   outTitle: "Live delivery state",
   replayDlq: (n) => `↻ Replay DLQ (${n})`,
   clickRow: "Click a row to open its delivery ledger (every attempt, recorded).",
-  outHeaders: ["seq", "event", "status", "tries", "last error", "age"],
+  outHeaders: ["seq", "id", "event", "status", "tries", "last error", "age"],
   emptyOutbox: "Empty — enqueue something above.",
   cancel: "cancel",
   feedEyebrow: "Delivery feed",
@@ -152,12 +156,12 @@ const ja: LiveDemoCopy = {
   btnIdem: "⇉ 同一キーで2回",
   ssrfHint: "169.254.169.254 を標的にします",
   idemHint: "at-least-once 配信2回・idempotency-key は1つ",
-  toastCommit: (e) => `${e} を enqueue (コミット済み → 配信されます)`,
+  toastCommit: (e, tag) => `${e} ${tag} を enqueue (コミット済み → 配信されます)`,
   toastRollback: (e) => `${e} をロールバック (行は書かれていない — 二重書き込み安全)`,
-  toastSsrf:
-    "クラウドメタデータ IP への配信を enqueue しました — SSRF でブロックされる様子を見てください。",
-  toastIdem:
-    "1つの idempotency-key で2配信を enqueue しました — 2件目を receiver が重複排除します。",
+  toastSsrf: (tag) =>
+    `クラウドメタデータ IP への配信 ${tag} を enqueue しました — SSRF でブロックされる様子を (受信側ではなくフィード/配信状態で) 見てください。`,
+  toastIdem: (tags) =>
+    `1つの idempotency-key で2配信 ${tags} を enqueue しました — 2件目を receiver が重複排除します。`,
   errorToast: "リクエスト失敗 (レート制限?)。少し待って再試行してください。",
   dupLabel: "重複 ✓ 無視",
   rcvEyebrow: "2 · Receiver",
@@ -175,6 +179,7 @@ const ja: LiveDemoCopy = {
     slow: "5秒のタイムアウトを超過",
   },
   recentLabel: "最近の受信 (署名はサーバ側で検証済み):",
+  recentHint: "新しい順 ↓ ・ #id タグは送信/配信状態/フィードの同じイベントと一致します",
   nothingYet: "— まだ何もありません —",
   sigOk: "署名 ✓",
   sigBad: "署名 ✗",
@@ -186,7 +191,7 @@ const ja: LiveDemoCopy = {
   outTitle: "ライブな配信状態",
   replayDlq: (n) => `↻ DLQ を再送 (${n})`,
   clickRow: "行をクリックすると配信台帳 (記録された全試行) が開きます。",
-  outHeaders: ["seq", "イベント", "状態", "試行", "直近エラー", "経過"],
+  outHeaders: ["seq", "追跡", "イベント", "状態", "試行", "直近エラー", "経過"],
   emptyOutbox: "空です — 上で何か enqueue してください。",
   cancel: "キャンセル",
   feedEyebrow: "配信フィード",
@@ -205,6 +210,13 @@ function age(iso: string): string {
   return `${(s / 3600).toFixed(0)}h`;
 }
 
+// last 6 chars of the shared outbox/webhook id — the same value flows to every panel
+// (enqueue response id === webhook-id header === outbox id === delivery event id), so the
+// tag lets a viewer trace one event across send / delivery state / receiver / feed.
+function tag(id: string): string {
+  return `#${id.slice(-6)}`;
+}
+
 function Pill({ status }: { status: string }) {
   const label = useStatusLabel();
   return <span className={`pill ${status}`}>{label(status)}</span>;
@@ -215,10 +227,10 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
   const enqueue = async (commit: boolean) => {
     setBusy(true);
     try {
-      const r = await api<{ eventType: string; committed: boolean }>("/enqueue", {
+      const r = await api<{ eventType: string; committed: boolean; id: string }>("/enqueue", {
         body: { commit },
       });
-      onAction(commit ? t.toastCommit(r.eventType) : t.toastRollback(r.eventType));
+      onAction(commit ? t.toastCommit(r.eventType, tag(r.id)) : t.toastRollback(r.eventType));
     } catch (e) {
       console.error(e);
       onAction(t.errorToast);
@@ -229,8 +241,8 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
   const ssrf = async () => {
     setBusy(true);
     try {
-      await api("/enqueue-ssrf", { body: {} });
-      onAction(t.toastSsrf);
+      const r = await api<{ id: string }>("/enqueue-ssrf", { body: {} });
+      onAction(t.toastSsrf(tag(r.id)));
     } catch (e) {
       console.error(e);
       onAction(t.errorToast);
@@ -241,8 +253,8 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
   const idempotent = async () => {
     setBusy(true);
     try {
-      await api("/enqueue-idempotent", { body: {} });
-      onAction(t.toastIdem);
+      const r = await api<{ ids: string[] }>("/enqueue-idempotent", { body: {} });
+      onAction(t.toastIdem(r.ids.map(tag).join(" ")));
     } catch (e) {
       console.error(e);
       onAction(t.errorToast);
@@ -309,18 +321,24 @@ function ReceiverControl({
         {t.modeDescs[mode as Mode] ?? ""}
       </p>
       <div style={{ marginTop: 12 }}>
-        <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+        <div className="muted" style={{ fontSize: 12, marginBottom: 2 }}>
           {t.recentLabel}
+        </div>
+        <div className="muted" style={{ fontSize: 11, marginBottom: 6 }}>
+          {t.recentHint}
         </div>
         {recent.length === 0 && <div className="muted">{t.nothingYet}</div>}
         {recent.map((r) => (
           <div key={r.webhookId} className="row" style={{ fontSize: 12, gap: 8 }}>
+            <span className="mono muted">{tag(r.webhookId)}</span>
             <span className="mono">{r.eventType}</span>
             <span className={r.verified ? "pill delivered" : "pill dead"}>
               {r.verified ? t.sigOk : t.sigBad}
             </span>
             <span className="muted">→ {r.responded}</span>
             {r.duplicate && <span className="pill in_flight">{t.dupLabel}</span>}
+            <span className="spacer" />
+            <span className="muted">{age(r.at)}</span>
           </div>
         ))}
       </div>
@@ -401,7 +419,7 @@ function OutboxTable({ t, rows }: { t: LiveDemoCopy; rows: OutboxItem[] }) {
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted">
+                <td colSpan={8} className="muted">
                   {t.emptyOutbox}
                 </td>
               </tr>
@@ -413,6 +431,9 @@ function OutboxTable({ t, rows }: { t: LiveDemoCopy; rows: OutboxItem[] }) {
                   style={{ cursor: "pointer" }}
                 >
                   <td>{r.seq}</td>
+                  <td>
+                    <span className="mono muted">{tag(r.id)}</span>
+                  </td>
                   <td>{r.eventType}</td>
                   <td>
                     <Pill status={r.status} />
@@ -446,7 +467,7 @@ function OutboxTable({ t, rows }: { t: LiveDemoCopy; rows: OutboxItem[] }) {
                 </tr>
                 {open === r.id && (
                   <tr>
-                    <td colSpan={7} style={{ background: "var(--bg-soft)" }}>
+                    <td colSpan={8} style={{ background: "var(--bg-soft)" }}>
                       <AttemptsDrawer t={t} id={r.id} />
                     </td>
                   </tr>
@@ -517,6 +538,7 @@ export function LiveDemo() {
               >
                 {t.outcomeLabels[f.outcome]}
               </span>
+              <span className="mono muted">{tag(f.event.id)}</span>
               <span>{f.event.eventType}</span>
               <span className="muted">{t.attempt(f.event.attempt)}</span>
               <span className="muted">{f.event.status ?? f.event.error ?? ""}</span>
