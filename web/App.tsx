@@ -4,10 +4,12 @@ import { Integrate } from "./pages/Integrate";
 import { LiveDemo } from "./pages/LiveDemo";
 import { Playground } from "./pages/Playground";
 import { Stats } from "./pages/Stats";
+import { Faq } from "./pages/Faq";
 import { LocaleToggle } from "./components/LocaleToggle";
+import { Footer } from "./components/Footer";
 import { useCopy, type Locale } from "./i18n";
 
-const TAB_IDS = ["", "integrate", "demo", "playground", "stats"] as const;
+const TAB_IDS = ["", "integrate", "demo", "playground", "stats", "faq"] as const;
 
 const navCopy: Record<Locale, Record<(typeof TAB_IDS)[number], string>> = {
   en: {
@@ -16,6 +18,7 @@ const navCopy: Record<Locale, Record<(typeof TAB_IDS)[number], string>> = {
     demo: "Live demo",
     playground: "Playground",
     stats: "Track record",
+    faq: "FAQ",
   },
   ja: {
     "": "ホーム",
@@ -23,6 +26,7 @@ const navCopy: Record<Locale, Record<(typeof TAB_IDS)[number], string>> = {
     demo: "ライブデモ",
     playground: "プレイグラウンド",
     stats: "稼働実績",
+    faq: "FAQ",
   },
 };
 
@@ -74,6 +78,8 @@ export function App() {
       {route === "demo" && <LiveDemo />}
       {route === "playground" && <Playground />}
       {route === "stats" && <Stats />}
+      {route === "faq" && <Faq />}
+      <Footer />
     </>
   );
 }

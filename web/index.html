@@ -3,11 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1020" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://commitcourier-demo.onrender.com/" />
+
     <title>CommitCourier — Transactional Outbound Webhooks, live demo</title>
     <meta
       name="description"
       content="CommitCourier rides your own DB transaction all the way to webhook-grade HTTP delivery. Live demo with real Postgres, signing, retries, DLQ and replay."
     />
+
+    <!-- Open Graph (replace the URL with your deployed origin) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CommitCourier" />
+    <meta property="og:url" content="https://commitcourier-demo.onrender.com/" />
+    <meta property="og:title" content="CommitCourier — webhooks that can't lie about your data" />
+    <meta
+      property="og:description"
+      content="Transactional outbound webhooks: write the webhook in the same Postgres transaction as your business change. Signing, retries, DLQ, ledger and SSRF protection — running live."
+    />
+    <meta property="og:image" content="https://commitcourier-demo.onrender.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CommitCourier — webhooks that can't lie about your data" />
+    <meta
+      name="twitter:description"
+      content="Transactional outbound webhooks on the Postgres you already run. Signing, retries, DLQ, ledger, SSRF — running live."
+    />
+    <meta name="twitter:image" content="https://commitcourier-demo.onrender.com/og.png" />
   </head>
   <body>
     <div id="root"></div>

@@ -432,3 +432,39 @@ textarea.txt {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
 }
+
+/* Site footer (rendered on every page after the route content). */
+.footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+  margin-top: 56px;
+  padding: 36px 20px 28px;
+}
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.footer-col .brand {
+  font-weight: 700;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.footer-fine {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  font-size: 12px;
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+  }
+}
