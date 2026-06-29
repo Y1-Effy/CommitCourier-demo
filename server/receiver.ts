@@ -70,6 +70,29 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
     /* ignore */
   }
 
+  const record = (responded: number, duplicate: boolean) => {
+    recent.unshift({
+      webhookId: header("webhook-id"),
+      eventType,
+      verified,
+      mode: currentMode,
+      responded,
+      duplicate,
+      at: new Date().toISOString(),
+    });
+    if (recent.length > 30) recent.length = 30;
+  };
+
+  // Signature is the first gate a real receiver applies, ahead of any scenario behaviour: reject a
+  // bad/absent signature with 401 so the relay treats it as a failed delivery (retry -> DLQ) and a
+  // misconfigured secret / mid-rotation mismatch surfaces, instead of being silently marked delivered.
+  // A rejected delivery is NOT recorded as processed (don't add it to seenKeys).
+  if (!verified) {
+    record(401, false);
+    res.status(401).json({ received: false, verified: false });
+    return;
+  }
+
   // Receiver-side idempotency: if this event's idempotency-key was already seen, the effect was
   // already applied — acknowledge but skip re-processing. (Bounded for the long-running demo.)
   const idempotencyKey = header("idempotency-key");
@@ -80,22 +103,17 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
   }
 
   const mode = currentMode;
-  const responded = mode === "fail" ? 500 : 200;
-
-  recent.unshift({
-    webhookId: header("webhook-id"),
-    eventType,
-    verified,
-    mode,
-    responded,
-    duplicate,
-    at: new Date().toISOString(),
-  });
-  if (recent.length > 30) recent.length = 30;
+  record(mode === "fail" ? 500 : 200, duplicate);
 
   // "slow" exceeds the relay's delivery.timeoutMs (5s) so the attempt times out and retries.
   if (mode === "slow") {
-    setTimeout(() => res.status(200).json({ received: true, slow: true }), 8_000);
+    // The relay aborts the connection at its timeout, so guard the late write: responding on an
+    // already-closed socket would emit a stream error, and clear the timer if the client hangs up.
+    const timer = setTimeout(() => {
+      if (res.writableEnded || req.destroyed) return;
+      res.status(200).json({ received: true, slow: true });
+    }, 8_000);
+    req.on("close", () => clearTimeout(timer));
     return;
   }
   if (mode === "fail") {

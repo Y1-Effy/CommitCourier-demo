@@ -57,6 +57,10 @@ async function main() {
 
   const app = express();
   app.disable("x-powered-by");
+  // Behind a single reverse proxy in production (Render). Without this, `req.ip` is the proxy's IP, so
+  // the write rate-limiter would key every visitor into one shared bucket (and express-rate-limit v7
+  // logs an X-Forwarded-For validation error). One hop = trust the first proxy only.
+  app.set("trust proxy", 1);
 
   // The receiver needs the RAW body for signature verification, so parse it as text BEFORE json.
   app.use("/receiver", express.text({ type: () => true, limit: "1mb" }), receiverRouter);
@@ -71,6 +75,16 @@ async function main() {
     app.use(express.static(webDist));
     app.get("*", (_req, res) => res.sendFile(resolve(webDist, "index.html")));
   }
+
+  // Final error handler: async route rejections are routed here (see `wrap` in routes.ts) so a failed
+  // DB query returns a 500 instead of hanging the request. Must be registered after all routes.
+  app.use(
+    (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      console.error("[api] request failed:", err);
+      if (res.headersSent) return;
+      res.status(500).json({ error: "internal error" });
+    },
+  );
 
   const server = app.listen(config.port, () => {
     console.log(`[commitcourier-demo] listening on http://localhost:${config.port}`);
@@ -108,8 +122,10 @@ async function main() {
     console.log("\n[commitcourier-demo] shutting down...");
     clearInterval(snapshotTimer);
     clearInterval(pruneTimer);
-    server.close();
+    // Stop the dispatcher FIRST while the HTTP server is still up: deliveries target this same process's
+    // self-receiver, so closing the server first would make in-flight attempts hit ECONNREFUSED.
     await dispatcher.stop();
+    server.close();
     await pool.end();
     process.exit(0);
   };

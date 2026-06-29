@@ -71,11 +71,26 @@ describe("receiver", () => {
     expect(await second.json()).toMatchObject({ duplicate: true });
   });
 
-  it("still responds 200 but verified=false when the body is tampered", async () => {
+  it("rejects with 401 and verified=false when the body is tampered (signature gate)", async () => {
     const res = await postSigned(JSON.stringify({ orderId: "order_bad" }), { tamper: true });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ verified: false });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ received: false, verified: false });
     expect(getRecent()[0]?.verified).toBe(false);
+    expect(getRecent()[0]?.responded).toBe(401);
+  });
+
+  it("does not dedup-register a rejected (unverified) delivery", async () => {
+    const key = `idem_${Math.random().toString(36).slice(2, 8)}`;
+    // A tampered delivery is rejected and must NOT mark the key as seen...
+    await postSigned(JSON.stringify({ orderId: "order_reject" }), {
+      tamper: true,
+      idempotencyKey: key,
+    });
+    // ...so a later valid delivery with the same key is treated as first-seen, not a duplicate.
+    const ok = await postSigned(JSON.stringify({ orderId: "order_reject" }), {
+      idempotencyKey: key,
+    });
+    expect(await ok.json()).toMatchObject({ duplicate: false });
   });
 
   it("returns 500 in fail mode (forces retries → DLQ)", async () => {
