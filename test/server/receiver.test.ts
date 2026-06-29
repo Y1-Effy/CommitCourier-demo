@@ -30,18 +30,23 @@ beforeEach(() => {
 });
 
 /** POST a signed webhook to the receiver. `tamper` mutates the body after signing so it fails. */
-async function postSigned(body: string, opts: { tamper?: boolean } = {}): Promise<Response> {
+async function postSigned(
+  body: string,
+  opts: { tamper?: boolean; idempotencyKey?: string } = {},
+): Promise<Response> {
   const id = `msg_${Math.random().toString(36).slice(2, 10)}`;
   const timestampSec = Math.floor(Date.now() / 1000);
   const headers = await sign({ id, timestampSec, body, secrets: [config.webhookSecret] });
+  const reqHeaders: Record<string, string> = {
+    "content-type": "application/json",
+    "webhook-id": id,
+    "webhook-timestamp": String(timestampSec),
+    "webhook-signature": headers["webhook-signature"],
+  };
+  if (opts.idempotencyKey) reqHeaders["idempotency-key"] = opts.idempotencyKey;
   return fetch(`${base}/receiver`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "webhook-id": id,
-      "webhook-timestamp": String(timestampSec),
-      "webhook-signature": headers["webhook-signature"],
-    },
+    headers: reqHeaders,
     body: opts.tamper ? `${body} ` : body,
   });
 }
@@ -50,8 +55,20 @@ describe("receiver", () => {
   it("accepts a valid signature and reports verified=true (mode ok)", async () => {
     const res = await postSigned(JSON.stringify({ orderId: "order_ok" }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ received: true, verified: true });
+    expect(await res.json()).toMatchObject({ received: true, verified: true, duplicate: false });
     expect(getRecent()[0]?.verified).toBe(true);
+  });
+
+  it("dedups a repeated idempotency-key (receiver-side idempotency)", async () => {
+    const key = `idem_${Math.random().toString(36).slice(2, 8)}`;
+    const first = await postSigned(JSON.stringify({ orderId: "order_idem" }), {
+      idempotencyKey: key,
+    });
+    const second = await postSigned(JSON.stringify({ orderId: "order_idem" }), {
+      idempotencyKey: key,
+    });
+    expect(await first.json()).toMatchObject({ duplicate: false });
+    expect(await second.json()).toMatchObject({ duplicate: true });
   });
 
   it("still responds 200 but verified=false when the body is tampered", async () => {

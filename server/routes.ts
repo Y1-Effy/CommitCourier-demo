@@ -82,6 +82,40 @@ export function createApiRouter(relay: Relay<PoolClient>): Router {
     }
   });
 
+  // ── Idempotency demo: enqueue the SAME idempotency-key twice → two real at-least-once deliveries.
+  //    The receiver dedups on the key so the effect lands once (see server/receiver.ts). This shows
+  //    the honest model: CommitCourier is at-least-once + carries an idempotency-key; the RECEIVER
+  //    is responsible for exactly-once effects. ──────────────────────────────────────────────────
+  r.post("/enqueue-idempotent", writeLimiter, async (_req, res) => {
+    const orderId = `order_${shortId()}`;
+    const amount = Math.floor(Math.random() * 50_000) + 100;
+    const key = `idem_${shortId()}`;
+    const enqueueOnce = (client: PoolClient) =>
+      relay.enqueue(client, {
+        eventType: "order.created",
+        payload: { orderId, amount, at: new Date().toISOString() },
+        endpoint: { url: TARGET, secret: config.webhookSecret },
+        idempotencyKey: key,
+      });
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("INSERT INTO demo_orders (id, amount) VALUES ($1, $2)", [orderId, amount]);
+      // Two rows sharing one idempotency-key: both deliver, the receiver applies the effect once.
+      const first = await enqueueOnce(client);
+      const second = await enqueueOnce(client);
+      await client.query("COMMIT");
+      await bumpMetric("enqueued", 2);
+      res.json({ ok: true, key, orderId, ids: [first.id, second.id] });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      res.status(500).json({ error: String(err) });
+    } finally {
+      client.release();
+    }
+  });
+
   // ── Read-only inspection (secret-free) ─────────────────────────────────────────────────────
   r.get("/outbox", async (req, res) => {
     const status = req.query.status as Status | undefined;

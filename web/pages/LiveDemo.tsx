@@ -26,11 +26,15 @@ interface LiveDemoCopy {
   btnCommit: string;
   btnRollback: string;
   btnSsrf: string;
+  btnIdem: string;
   ssrfHint: string;
+  idemHint: string;
   toastCommit: (eventType: string) => string;
   toastRollback: (eventType: string) => string;
   toastSsrf: string;
+  toastIdem: string;
   errorToast: string;
+  dupLabel: string;
   rcvEyebrow: string;
   rcvTitle: string;
   rcvSub: ReactNode;
@@ -79,11 +83,15 @@ const en: LiveDemoCopy = {
   btnCommit: "✓ Enqueue & COMMIT",
   btnRollback: "⤺ Enqueue & ROLLBACK",
   btnSsrf: "⚠ Try SSRF target",
+  btnIdem: "⇉ Same key ×2",
   ssrfHint: "Targets 169.254.169.254",
+  idemHint: "Two at-least-once deliveries, one idempotency-key",
   toastCommit: (e) => `Enqueued ${e} (committed → will be delivered)`,
   toastRollback: (e) => `Rolled back ${e} (no row written — dual-write safe)`,
   toastSsrf: "Enqueued a delivery to the cloud-metadata IP — watch it get SSRF-blocked.",
+  toastIdem: "Enqueued 2 deliveries sharing one idempotency-key — the receiver dedups the second.",
   errorToast: "Request failed (rate limited?). Try again.",
+  dupLabel: "duplicate ✓ ignored",
   rcvEyebrow: "2 · Receiver",
   rcvTitle: "Flaky endpoint simulator",
   rcvSub: (
@@ -141,12 +149,17 @@ const ja: LiveDemoCopy = {
   btnCommit: "✓ Enqueue & COMMIT",
   btnRollback: "⤺ Enqueue & ROLLBACK",
   btnSsrf: "⚠ SSRF 先を試す",
+  btnIdem: "⇉ 同一キーで2回",
   ssrfHint: "169.254.169.254 を標的にします",
+  idemHint: "at-least-once 配信2回・idempotency-key は1つ",
   toastCommit: (e) => `${e} を enqueue (コミット済み → 配信されます)`,
   toastRollback: (e) => `${e} をロールバック (行は書かれていない — 二重書き込み安全)`,
   toastSsrf:
     "クラウドメタデータ IP への配信を enqueue しました — SSRF でブロックされる様子を見てください。",
+  toastIdem:
+    "1つの idempotency-key で2配信を enqueue しました — 2件目を receiver が重複排除します。",
   errorToast: "リクエスト失敗 (レート制限?)。少し待って再試行してください。",
+  dupLabel: "重複 ✓ 無視",
   rcvEyebrow: "2 · Receiver",
   rcvTitle: "不安定なエンドポイントの模擬",
   rcvSub: (
@@ -225,6 +238,18 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
       setBusy(false);
     }
   };
+  const idempotent = async () => {
+    setBusy(true);
+    try {
+      await api("/enqueue-idempotent", { body: {} });
+      onAction(t.toastIdem);
+    } catch (e) {
+      console.error(e);
+      onAction(t.errorToast);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="card">
       <div className="eyebrow">{t.enqEyebrow}</div>
@@ -239,6 +264,9 @@ function EnqueuePanel({ t, onAction }: { t: LiveDemoCopy; onAction: (msg: string
         </button>
         <button className="btn ghost" disabled={busy} onClick={ssrf} title={t.ssrfHint}>
           {t.btnSsrf}
+        </button>
+        <button className="btn ghost" disabled={busy} onClick={idempotent} title={t.idemHint}>
+          {t.btnIdem}
         </button>
       </div>
       <CodeBlock code={ENQUEUE_CODE} />
@@ -258,6 +286,7 @@ function ReceiverControl({
     eventType: string;
     verified: boolean;
     responded: number;
+    duplicate?: boolean;
     at: string;
   }[];
 }) {
@@ -291,6 +320,7 @@ function ReceiverControl({
               {r.verified ? t.sigOk : t.sigBad}
             </span>
             <span className="muted">→ {r.responded}</span>
+            {r.duplicate && <span className="pill in_flight">{t.dupLabel}</span>}
           </div>
         ))}
       </div>

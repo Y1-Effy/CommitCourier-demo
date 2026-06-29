@@ -63,6 +63,7 @@ export interface ReceivedRecord {
   verified: boolean;
   mode: string;
   responded: number;
+  duplicate?: boolean;
   at: string;
 }
 

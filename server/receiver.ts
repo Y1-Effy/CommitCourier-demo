@@ -25,6 +25,8 @@ export interface ReceivedRecord {
   verified: boolean;
   mode: ReceiverMode;
   responded: number;
+  /** True when this delivery's idempotency-key was already processed (receiver-side dedup). */
+  duplicate: boolean;
   at: string;
 }
 
@@ -32,6 +34,11 @@ const recent: ReceivedRecord[] = [];
 export function getRecent(): ReceivedRecord[] {
   return recent;
 }
+
+// Receiver-side idempotency: at-least-once delivery means the same event can arrive more than once
+// (redelivery, or two enqueues sharing an idempotency-key). A real receiver dedups on a stable key
+// so the effect applies once. We track seen idempotency-key headers in memory for the demo.
+const seenKeys = new Set<string>();
 
 export const receiverRouter = Router();
 
@@ -63,6 +70,15 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
     /* ignore */
   }
 
+  // Receiver-side idempotency: if this event's idempotency-key was already seen, the effect was
+  // already applied — acknowledge but skip re-processing. (Bounded for the long-running demo.)
+  const idempotencyKey = header("idempotency-key");
+  const duplicate = idempotencyKey !== "" && seenKeys.has(idempotencyKey);
+  if (idempotencyKey !== "" && !duplicate) {
+    if (seenKeys.size > 5_000) seenKeys.clear();
+    seenKeys.add(idempotencyKey);
+  }
+
   const mode = currentMode;
   const responded = mode === "fail" ? 500 : 200;
 
@@ -72,6 +88,7 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
     verified,
     mode,
     responded,
+    duplicate,
     at: new Date().toISOString(),
   });
   if (recent.length > 30) recent.length = 30;
@@ -85,5 +102,5 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
     res.status(500).json({ received: false, simulatedFailure: true });
     return;
   }
-  res.status(200).json({ received: true, verified });
+  res.status(200).json({ received: true, verified, duplicate });
 });
