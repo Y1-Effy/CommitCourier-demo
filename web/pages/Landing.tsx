@@ -20,9 +20,9 @@ await relay.enqueue(trx, {
 // column) come from the copy dictionary, aligned by index.
 const COMPARE_CELLS: [string, string, string][] = [
   ["✗", "✗", "✓"],
-  ["✓", "✓", "✗"],
-  ["✓", "partial", "✗"],
-  ["✓", "—", "—"],
+  ["✓", "✓", "✓"],
+  ["✓", "partial", "✓"],
+  ["✓", "—", "✓"],
   ["✗ (SaaS)", "✗ (Redis)", "✓"],
 ];
 
@@ -39,6 +39,8 @@ interface LandingCopy {
   fixTitle: string;
   fixSub: ReactNode;
   callout: string;
+  learnMore: ReactNode;
+  tryLink: ReactNode;
   quickstartEyebrow: string;
   compareHeading: string;
   capabilityHeader: string;
@@ -93,6 +95,18 @@ const en: LandingCopy = {
     </>
   ),
   callout: "No Redis. No SaaS. No extra broker. Just the PostgreSQL you already run.",
+  learnMore: (
+    <>
+      Want the full breakdown — failure modes, recovery cost, and how this sits next to an existing
+      webhook service? <a href="#/why">Why webhook delivery is hard →</a>
+    </>
+  ),
+  tryLink: (
+    <>
+      New library, weighing the risk? See how it's built to be added small, tried without sending,
+      and removed cleanly: <a href="#/safe-adoption">Built for safe adoption →</a>
+    </>
+  ),
   quickstartEyebrow: "60-second integration",
   compareHeading: "How it compares",
   capabilityHeader: "Capability",
@@ -171,6 +185,19 @@ const ja: LandingCopy = {
     </>
   ),
   callout: "Redis なし。SaaS なし。追加のブローカーなし。すでに動かしている PostgreSQL だけ。",
+  learnMore: (
+    <>
+      失敗パターン・復旧コスト・既存 Webhook サービスとの関係まで詳しく:{" "}
+      <a href="#/why">なぜ Webhook 配信は難しいのか →</a>
+    </>
+  ),
+  tryLink: (
+    <>
+      新しいライブラリで導入を迷っていますか？
+      小さく入れて・送らず試して・きれいに外せる設計について:{" "}
+      <a href="#/safe-adoption">安心して試すための設計 →</a>
+    </>
+  ),
   quickstartEyebrow: "60秒で組み込み",
   compareHeading: "他の方式との比較",
   capabilityHeader: "機能",
@@ -270,6 +297,13 @@ export function Landing() {
             <div className="callout">{t.callout}</div>
           </div>
         </div>
+
+        <p className="muted" style={{ marginTop: 16 }}>
+          {t.learnMore}
+        </p>
+        <p className="muted" style={{ marginTop: 8 }}>
+          {t.tryLink}
+        </p>
 
         <div style={{ height: 28 }} />
         <div className="eyebrow">{t.quickstartEyebrow}</div>

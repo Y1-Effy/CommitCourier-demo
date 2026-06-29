@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 import { CodeBlock } from "./CodeBlock";
 import { useCopy, type Locale } from "../i18n";
+import { NPM as NPM_URL, REPO as REPO_URL, LICENSE as LICENSE_URL } from "../lib/links";
 
 const INSTALL = `npm install commitcourier pg`;
-
-const NPM_URL = "https://www.npmjs.com/package/commitcourier";
-const REPO_URL = "https://github.com/Y1-Effy/CommitCourier";
 
 interface FooterCopy {
   tagline: ReactNode;
@@ -97,7 +95,7 @@ export function Footer() {
             </a>
             <a
               className="btn ghost sm"
-              href={`${REPO_URL}/blob/main/LICENSE`}
+              href={LICENSE_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
