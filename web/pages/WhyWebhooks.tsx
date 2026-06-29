@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CodeBlock } from "../components/CodeBlock";
+import { Flow, PartHeader, PageNav } from "../components/Explainer";
 import { useCopy, type Locale } from "../i18n";
 
 // The dual-write snippet is code, so it is never translated (kept as a module constant).
@@ -7,20 +8,18 @@ const DUAL_WRITE = `// Two separate steps — not one atomic unit:
 await db.orders.insert(order);
 await webhookProvider.send(event);`;
 
-/**
- * 縦方向の簡易フロー図。ステップ配列を矢印で連結して描画する。
- * CJK の桁ずれを避けるため、箱組みではなく縦並び + 矢印で表現する。
- */
-function Flow({ steps }: { steps: string[] }) {
-  return <pre className="diagram">{steps.join("\n   ↓\n")}</pre>;
-}
-
 interface WhyCopy {
   eyebrow: string;
   heading: string;
   intro: ReactNode;
+  navLabel: string;
 
-  // 2. 二重書き込み問題
+  // パート見出し / ページ内ナビ
+  partProblem: string;
+  partSolution: string;
+  partApply: string;
+
+  // 1. 二重書き込み問題
   dualEyebrow: string;
   dualTitle: string;
   dualSub: ReactNode;
@@ -32,33 +31,30 @@ interface WhyCopy {
   phantomResult: ReactNode;
   dualKey: ReactNode;
 
-  // 3. 業務影響
-  impactEyebrow: string;
-  impactTitle: string;
+  // 2. コスト（業務影響 + 損失を統合）
+  costEyebrow: string;
+  costTitle: string;
+  costSub: ReactNode;
   impactList: string[];
+  directTitle: string;
+  directList: string[];
+  indirectTitle: string;
+  indirectList: string[];
 
-  // 4. リカバリ
+  // 3. リカバリ
   recoveryEyebrow: string;
   recoveryTitle: string;
   recoverySub: ReactNode;
   recoveryList: string[];
   recoveryKey: ReactNode;
 
-  // 5. 損失と運用コスト
-  lossEyebrow: string;
-  lossTitle: string;
-  directTitle: string;
-  directList: string[];
-  indirectTitle: string;
-  indirectList: string[];
-
-  // 6. 既存 SaaS が解決していること
+  // 4. 既存 SaaS が解決していること
   saasEyebrow: string;
   saasTitle: string;
   saasSub: ReactNode;
   saasList: string[];
 
-  // 7. 残る最後の穴
+  // 5. 残る最後の穴
   gapEyebrow: string;
   gapTitle: string;
   gapSub: ReactNode;
@@ -66,7 +62,7 @@ interface WhyCopy {
   gapPoints: ReactNode;
   gapKey: ReactNode;
 
-  // 8. CommitCourier がふさぐ部分
+  // 6. CommitCourier がふさぐ部分
   fixEyebrow: string;
   fixTitle: string;
   fixSub: ReactNode;
@@ -75,7 +71,7 @@ interface WhyCopy {
   deliveryTitle: string;
   deliveryFeatures: [string, string][];
 
-  // 9. 2 つの利用パターン
+  // 7. 2 つの利用パターン
   useEyebrow: string;
   useTitle: string;
   useSub: ReactNode;
@@ -90,13 +86,13 @@ interface WhyCopy {
   comboFor: string[];
   useCallout: ReactNode;
 
-  // 10. 解決しないこと
+  // 8. 解決しないこと
   scopeEyebrow: string;
   scopeTitle: string;
   scopeSub: ReactNode;
   scopeList: string[];
 
-  // 11. 末尾 CTA
+  // 末尾 CTA
   ctaTitle: string;
   ctaSub: ReactNode;
   ctaDemo: string;
@@ -105,17 +101,22 @@ interface WhyCopy {
 }
 
 const en: WhyCopy = {
-  eyebrow: "The problem",
+  eyebrow: "Start here",
   heading: "Why webhook delivery is hard",
   intro: (
     <>
-      The difficulty of webhook delivery is not just sending an HTTP request. You have to complete
-      two things — <b>updating your business data</b> and <b>registering the webhook event</b> —
-      without ever leaving them in disagreement. When those are two separate steps, a crash or
-      rollback in between breaks the system. This page walks through that failure, what it costs,
-      what existing services already solve, and the one seam they can leave open.
+      Webhook delivery isn't just sending an HTTP request. You have to keep two facts in agreement —{" "}
+      <b>your business data changed</b> and <b>the webhook event was registered</b> — even if the
+      process crashes or rolls back in between. When those are two separate writes, that in-between
+      moment is where systems break. This page walks the failure, what it costs, what existing
+      services already solve, and the one seam they can leave open.
     </>
   ),
+  navLabel: "On this page:",
+
+  partProblem: "The problem",
+  partSolution: "The fix",
+  partApply: "Using it",
 
   dualEyebrow: "Dual write",
   dualTitle: "Two writes that can't be made atomic",
@@ -162,45 +163,20 @@ const en: WhyCopy = {
     </>
   ),
 
-  impactEyebrow: "Business impact",
-  impactTitle: "What actually happens to the business",
+  costEyebrow: "Cost",
+  costTitle: "What it costs the business",
+  costSub: (
+    <>
+      An inconsistency rarely stays contained. Here's what actually happens — and the bill that
+      follows:
+    </>
+  ),
   impactList: [
     "An order is confirmed, but the warehouse is never notified, so it never ships.",
     "A payment fails, yet an external service receives a success notification.",
     "CRM, accounting, and inventory systems drift out of agreement.",
-    "A contract or permission change is never reflected downstream.",
     "The same event is processed twice — double billing or double shipment.",
-    "Nobody notices the failure until a customer reports it.",
   ],
-
-  recoveryEyebrow: "Recovery",
-  recoveryTitle: "Recovery needs people, not just a retry",
-  recoverySub: (
-    <>
-      Once an inconsistency exists, a simple resend is rarely enough. A human has to reconstruct
-      what really happened:
-    </>
-  ),
-  recoveryList: [
-    "Comb through application logs.",
-    "Reconcile business rows in the DB against the delivery history.",
-    "Identify which events were never sent.",
-    "Check the state on the external system's side.",
-    "Manually resend the missing webhooks.",
-    "Verify nothing was sent twice.",
-    "Reach out to customers or other teams.",
-    "Issue refunds, re-ship, or repair data.",
-    "Investigate the root cause and prevent a recurrence.",
-  ],
-  recoveryKey: (
-    <>
-      The real problem isn't that one webhook failed. It's that{" "}
-      <b>after the incident, you no longer know which system holds the correct state.</b>
-    </>
-  ),
-
-  lossEyebrow: "Cost",
-  lossTitle: "The kinds of loss this can produce",
   directTitle: "Direct loss",
   directList: [
     "Double billing or refunds",
@@ -217,6 +193,28 @@ const en: WhyCopy = {
     "Gaps in audit trail and accountability",
     "Planned work slips while you firefight",
   ],
+
+  recoveryEyebrow: "Recovery",
+  recoveryTitle: "Recovery needs people, not just a retry",
+  recoverySub: (
+    <>
+      Once an inconsistency exists, a simple resend is rarely enough. A human has to reconstruct
+      what really happened:
+    </>
+  ),
+  recoveryList: [
+    "Comb through application logs to reconstruct what happened.",
+    "Reconcile business rows in the DB against the delivery history.",
+    "Identify the events that were never sent, and resend them without double-sending.",
+    "Check and repair state on the external system's side.",
+    "Reach out to customers — refund, re-ship, or repair data.",
+  ],
+  recoveryKey: (
+    <>
+      The real problem isn't that one webhook failed. It's that{" "}
+      <b>after the incident, you no longer know which system holds the correct state.</b>
+    </>
+  ),
 
   saasEyebrow: "Credit where due",
   saasTitle: "What existing webhook services already solve",
@@ -244,9 +242,10 @@ const en: WhyCopy = {
   gapTitle: "The seam that can still remain",
   gapSub: (
     <>
-      A delivery service's retries only work for events the <i>service has received</i>. So a gap
-      can remain when <b>committing the business transaction</b> and{" "}
-      <b>registering the event with the webhook service</b> are two separate steps:
+      This is the same dual-write failure from the top of this page — only now the second write is{" "}
+      <b>registering the event with your webhook service</b>. A delivery service can only retry
+      events it has already received, so a gap remains whenever that registration is a separate step
+      from committing the business transaction:
     </>
   ),
   gapFlow: [
@@ -388,18 +387,23 @@ const en: WhyCopy = {
 };
 
 const ja: WhyCopy = {
-  eyebrow: "問題",
+  eyebrow: "はじめに",
   heading: "なぜ Webhook 配信は難しいのか",
   intro: (
     <>
       Webhook 配信の難しさは、HTTP リクエストを送ることだけではありません。
-      <b>業務データの更新</b>と <b>Webhook イベントの登録</b>を、矛盾なく完了させる必要があります。
-      この 2
-      つが別々の処理になっていると、その間でクラッシュやロールバックが起きた瞬間に破綻します。
+      <b>業務データの更新</b>と <b>Webhook イベントの登録</b>を、間でクラッシュやロールバックが
+      起きても矛盾なく揃えておく必要があります。この 2
+      つが別々の書き込みになっていると、ちょうどその合間でシステムは破綻します。
       このページでは、その失敗の構造・損失・既存サービスがすでに解決している範囲、そして
       それでも残りうる「最後の穴」を順番に見ていきます。
     </>
   ),
+  navLabel: "このページの流れ:",
+
+  partProblem: "問題",
+  partSolution: "解決策",
+  partApply: "使い方",
 
   dualEyebrow: "二重書き込み",
   dualTitle: "原子的にできない 2 つの書き込み",
@@ -446,45 +450,15 @@ const ja: WhyCopy = {
     </>
   ),
 
-  impactEyebrow: "業務影響",
-  impactTitle: "業務上、実際に何が起こるのか",
+  costEyebrow: "コスト",
+  costTitle: "業務にかかるコスト",
+  costSub: <>不整合はたいてい一箇所では収まりません。実際に何が起こり、どんな損失につながるのか:</>,
   impactList: [
     "注文は確定したのに、倉庫へ通知されず出荷されない。",
     "決済が失敗したのに、外部サービスには成功通知が届く。",
     "CRM・会計・在庫システムの状態が食い違う。",
-    "契約や権限の変更が下流に反映されない。",
     "同じイベントが複数回処理され、二重請求や二重出荷につながる。",
-    "顧客から問い合わせを受けるまで障害に気づけない。",
   ],
-
-  recoveryEyebrow: "リカバリ",
-  recoveryTitle: "復旧には再送だけでなく人手が要る",
-  recoverySub: (
-    <>
-      いったん不整合が生じると、単純な再送だけでは足りません。何が本当に起きたのかを、人間が
-      組み立て直す必要があります:
-    </>
-  ),
-  recoveryList: [
-    "アプリケーションログを調査する。",
-    "DB の業務データと配信履歴を突合する。",
-    "送信されなかったイベントを特定する。",
-    "外部システム側の状態を確認する。",
-    "手動で Webhook を再送する。",
-    "二重送信されていないか確認する。",
-    "顧客や関係部署へ問い合わせる。",
-    "返金・再出荷・データ修正などの業務対応を行う。",
-    "原因を調査し、再発を防止する。",
-  ],
-  recoveryKey: (
-    <>
-      本当の問題は、Webhook が 1 件失敗することではありません。
-      <b>障害後に、どのシステムの状態が正しいのか分からなくなることです。</b>
-    </>
-  ),
-
-  lossEyebrow: "コスト",
-  lossTitle: "発生しうる損失の種類",
   directTitle: "直接的な損失",
   directList: [
     "二重請求や返金",
@@ -501,6 +475,28 @@ const ja: WhyCopy = {
     "監査ログや説明責任の不足",
     "本来の開発作業の遅延",
   ],
+
+  recoveryEyebrow: "リカバリ",
+  recoveryTitle: "復旧には再送だけでなく人手が要る",
+  recoverySub: (
+    <>
+      いったん不整合が生じると、単純な再送だけでは足りません。何が本当に起きたのかを、人間が
+      組み立て直す必要があります:
+    </>
+  ),
+  recoveryList: [
+    "アプリケーションログを掘り起こし、何が起きたか再構成する。",
+    "DB の業務データと配信履歴を突合する。",
+    "送信されなかったイベントを特定し、二重送信せずに再送する。",
+    "外部システム側の状態を確認し、修復する。",
+    "顧客へ連絡し、返金・再出荷・データ修正を行う。",
+  ],
+  recoveryKey: (
+    <>
+      本当の問題は、Webhook が 1 件失敗することではありません。
+      <b>障害後に、どのシステムの状態が正しいのか分からなくなることです。</b>
+    </>
+  ),
 
   saasEyebrow: "正当な評価",
   saasTitle: "既存の Webhook サービスが解決していること",
@@ -528,9 +524,10 @@ const ja: WhyCopy = {
   gapTitle: "それでも残りうる継ぎ目",
   gapSub: (
     <>
-      配信サービスの再試行は、<i>サービスが受け取った</i>イベントに対してのみ機能します。 つまり{" "}
-      <b>業務トランザクションの commit</b> と <b>Webhook 配信サービスへのイベント登録</b>{" "}
-      が別々に実行されている場合、穴が残りえます:
+      これはこのページ冒頭の二重書き込みと同じ失敗です。ただし今度の 2 つ目の書き込みは{" "}
+      <b>Webhook 配信サービスへのイベント登録</b>です。配信サービスが再試行できるのは
+      すでに受け取ったイベントだけなので、その登録が業務トランザクションの commit と
+      別ステップになっている限り、穴が残ります:
     </>
   ),
   gapFlow: [
@@ -662,17 +659,25 @@ const copy: Record<Locale, WhyCopy> = { en, ja };
 
 export function WhyWebhooks() {
   const t = useCopy(copy);
+  const parts = [
+    { id: "why-problem", label: t.partProblem },
+    { id: "why-solution", label: t.partSolution },
+    { id: "why-apply", label: t.partApply },
+  ];
   return (
     <div className="container">
-      {/* 1. 導入 */}
+      {/* 導入 + ページ内ナビ */}
       <div className="eyebrow">{t.eyebrow}</div>
       <h2 className="section" style={{ fontSize: 32 }}>
         {t.heading}
       </h2>
       <p className="sub">{t.intro}</p>
+      <PageNav navLabel={t.navLabel} parts={parts} />
 
-      {/* 2. 二重書き込み問題 */}
-      <div style={{ height: 28 }} />
+      {/* ===== Part 1 — 問題 ===== */}
+      <PartHeader id="why-problem" n={1} label={t.partProblem} />
+
+      {/* 二重書き込み問題 */}
       <div className="eyebrow">{t.dualEyebrow}</div>
       <h2 className="section">{t.dualTitle}</h2>
       <p className="sub">{t.dualSub}</p>
@@ -681,12 +686,12 @@ export function WhyWebhooks() {
       <div className="grid cols-2">
         <div className="card">
           <b style={{ color: "var(--red)" }}>{t.lostTitle}</b>
-          <Flow steps={t.lostFlow} />
+          <Flow steps={t.lostFlow} breakAt={2} />
           <div style={{ marginTop: 10 }}>{t.lostResult}</div>
         </div>
         <div className="card">
           <b style={{ color: "var(--red)" }}>{t.phantomTitle}</b>
-          <Flow steps={t.phantomFlow} />
+          <Flow steps={t.phantomFlow} breakAt={1} />
           <div style={{ marginTop: 10 }}>{t.phantomResult}</div>
         </div>
       </div>
@@ -694,10 +699,11 @@ export function WhyWebhooks() {
         {t.dualKey}
       </div>
 
-      {/* 3. 業務影響 */}
-      <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.impactEyebrow}</div>
-      <h2 className="section">{t.impactTitle}</h2>
+      {/* コスト（業務影響 + 損失） */}
+      <div style={{ height: 28 }} />
+      <div className="eyebrow">{t.costEyebrow}</div>
+      <h2 className="section">{t.costTitle}</h2>
+      <p className="sub">{t.costSub}</p>
       <div className="card">
         <ul className="muted" style={{ margin: 0 }}>
           {t.impactList.map((line) => (
@@ -705,27 +711,7 @@ export function WhyWebhooks() {
           ))}
         </ul>
       </div>
-
-      {/* 4. 障害後リカバリ */}
-      <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.recoveryEyebrow}</div>
-      <h2 className="section">{t.recoveryTitle}</h2>
-      <p className="sub">{t.recoverySub}</p>
-      <div className="card">
-        <ul className="muted" style={{ margin: 0 }}>
-          {t.recoveryList.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </div>
-      <div className="callout" style={{ marginTop: 16 }}>
-        {t.recoveryKey}
-      </div>
-
-      {/* 5. 損失と運用コスト */}
-      <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.lossEyebrow}</div>
-      <h2 className="section">{t.lossTitle}</h2>
+      <div style={{ height: 16 }} />
       <div className="grid cols-2">
         <div className="card">
           <b>{t.directTitle}</b>
@@ -745,8 +731,26 @@ export function WhyWebhooks() {
         </div>
       </div>
 
-      {/* 6. 既存 SaaS が解決していること */}
-      <div style={{ height: 36 }} />
+      {/* 障害後リカバリ */}
+      <div style={{ height: 28 }} />
+      <div className="eyebrow">{t.recoveryEyebrow}</div>
+      <h2 className="section">{t.recoveryTitle}</h2>
+      <p className="sub">{t.recoverySub}</p>
+      <div className="card">
+        <ul className="muted" style={{ margin: 0 }}>
+          {t.recoveryList.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="callout" style={{ marginTop: 16 }}>
+        {t.recoveryKey}
+      </div>
+
+      {/* ===== Part 2 — 解決策 ===== */}
+      <PartHeader id="why-solution" n={2} label={t.partSolution} />
+
+      {/* 既存 SaaS が解決していること */}
       <div className="eyebrow">{t.saasEyebrow}</div>
       <h2 className="section">{t.saasTitle}</h2>
       <p className="sub">{t.saasSub}</p>
@@ -760,25 +764,25 @@ export function WhyWebhooks() {
         </div>
       </div>
 
-      {/* 7. 残る最後の穴 */}
-      <div style={{ height: 36 }} />
+      {/* 残る最後の穴 */}
+      <div style={{ height: 28 }} />
       <div className="eyebrow">{t.gapEyebrow}</div>
       <h2 className="section">{t.gapTitle}</h2>
       <p className="sub">{t.gapSub}</p>
       <div className="card">
-        <Flow steps={t.gapFlow} />
+        <Flow steps={t.gapFlow} breakAt={1} />
         <div style={{ marginTop: 10 }}>{t.gapPoints}</div>
       </div>
       <div className="callout" style={{ marginTop: 16 }}>
         {t.gapKey}
       </div>
 
-      {/* 8. CommitCourier がふさぐ部分 */}
-      <div style={{ height: 36 }} />
+      {/* CommitCourier がふさぐ部分（山場） */}
+      <div style={{ height: 28 }} />
       <div className="eyebrow">{t.fixEyebrow}</div>
       <h2 className="section">{t.fixTitle}</h2>
       <p className="sub">{t.fixSub}</p>
-      <div className="card">
+      <div className="card highlight">
         <Flow steps={t.fixFlow} />
       </div>
       <div className="callout" style={{ marginTop: 16 }}>
@@ -798,8 +802,10 @@ export function WhyWebhooks() {
         ))}
       </div>
 
-      {/* 9. 2 つの利用パターン */}
-      <div style={{ height: 36 }} />
+      {/* ===== Part 3 — 使い方と範囲 ===== */}
+      <PartHeader id="why-apply" n={3} label={t.partApply} />
+
+      {/* 2 つの利用パターン */}
       <div className="eyebrow">{t.useEyebrow}</div>
       <h2 className="section">{t.useTitle}</h2>
       <p className="sub">{t.useSub}</p>
@@ -839,8 +845,8 @@ export function WhyWebhooks() {
         {t.useCallout}
       </div>
 
-      {/* 10. 解決しないこと */}
-      <div style={{ height: 36 }} />
+      {/* 解決しないこと */}
+      <div style={{ height: 28 }} />
       <div className="eyebrow">{t.scopeEyebrow}</div>
       <h2 className="section">{t.scopeTitle}</h2>
       <p className="sub">{t.scopeSub}</p>
@@ -852,7 +858,7 @@ export function WhyWebhooks() {
         </ul>
       </div>
 
-      {/* 11. 末尾 CTA */}
+      {/* 末尾 CTA */}
       <div style={{ height: 40 }} />
       <div className="card" style={{ textAlign: "center" }}>
         <h2 className="section">{t.ctaTitle}</h2>

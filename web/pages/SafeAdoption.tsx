@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CodeBlock } from "../components/CodeBlock";
+import { Flow, PartHeader, PageNav } from "../components/Explainer";
 import { useCopy, type Locale } from "../i18n";
 import { NPM, REPO, ISSUES, SECURITY, ACTIONS, TESTS, CONTRIBUTING } from "../lib/links";
 
@@ -11,21 +12,19 @@ const relay = await createRelay({
 });
 // No outbound HTTP. Switch to the default (active) mode once you're convinced.`;
 
-// 設計思想ラベルは技術的な概念名なので日英共通（翻訳しない）。
-const PRINCIPLES = [
-  "Security by default",
-  "Failure-aware design",
-  "Evidence over promises",
-  "Clear responsibility boundaries",
-  "Open to feedback",
-] as const;
+// 設計思想ラベルは技術的な概念名なので日英共通（翻訳しない）。各ピルは、それを具体化している
+// 下流セクションへのジャンプリンクになる（[label, 対応セクションの id]）。
+const PRINCIPLES: [string, string][] = [
+  ["Security by default", "sa-security"],
+  ["Failure-aware design", "sa-failure"],
+  ["Evidence over promises", "sa-evidence"],
+  ["Clear responsibility boundaries", "sa-boundaries"],
+  ["Open to feedback", "sa-feedback"],
+];
 
-/**
- * 縦方向の簡易フロー図。ステップ配列を矢印で連結して描画する。
- * CJK の桁ずれを避けるため箱組みにせず、縦並び + 矢印で表現する（WhyWebhooks と同じ作法）。
- */
-function Flow({ steps }: { steps: string[] }) {
-  return <pre className="diagram">{steps.join("\n   ↓\n")}</pre>;
+/** Smooth-scroll to a section anchor (the principle pills act as jump links). */
+function jumpTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 interface SafeAdoptionCopy {
@@ -36,6 +35,12 @@ interface SafeAdoptionCopy {
   lead: ReactNode;
   ctaPrimary: string;
   ctaDemo: string;
+  navLabel: string;
+
+  // パート見出し（ページ内ナビ）
+  partEvaluate: string;
+  partTrust: string;
+  partLimits: string;
 
   // ヒーロー直下の3カード
   cards3: [string, string][];
@@ -76,8 +81,6 @@ interface SafeAdoptionCopy {
   s5RemoveTitle: string;
   s5RemoveFlow: string[];
   s5Key: ReactNode;
-  s5OverallTitle: string;
-  s5OverallFlow: string[];
 
   // §6 Security by default
   s6Eyebrow: string;
@@ -150,6 +153,11 @@ const en: SafeAdoptionCopy = {
   ),
   ctaPrimary: "Start in Observe mode",
   ctaDemo: "See the live demo",
+  navLabel: "On this page:",
+
+  partEvaluate: "Evaluate it safely",
+  partTrust: "Why it holds up",
+  partLimits: "Honest about the limits",
 
   cards3: [
     [
@@ -274,13 +282,6 @@ const en: SafeAdoptionCopy = {
       typical Transactional Outbox libraries, the footprint is straightforward to back out.
     </>
   ),
-  s5OverallTitle: "The whole arc — not just removal",
-  s5OverallFlow: [
-    "Add small",
-    "Observe without sending",
-    "Enable when ready",
-    "Remove just the dedicated parts",
-  ],
 
   s6Eyebrow: "Security by default",
   s6Title: "Safe defaults, explicit escape hatches",
@@ -488,6 +489,11 @@ const ja: SafeAdoptionCopy = {
   ),
   ctaPrimary: "Observe mode で試す",
   ctaDemo: "ライブデモを見る",
+  navLabel: "このページの流れ:",
+
+  partEvaluate: "小さく安全に試す",
+  partTrust: "なぜ信頼できるか",
+  partLimits: "正直な範囲",
 
   cards3: [
     [
@@ -608,13 +614,6 @@ const ja: SafeAdoptionCopy = {
       撤去しやすい構成です。
     </>
   ),
-  s5OverallTitle: "撤去単体ではなく、流れ全体が特徴",
-  s5OverallFlow: [
-    "小さく追加する",
-    "送信せず観察する",
-    "問題なければ有効化する",
-    "違ったら専用部分だけ外す",
-  ],
 
   s6Eyebrow: "安全をデフォルトに",
   s6Title: "安全なデフォルトと、明示的な抜け道",
@@ -821,6 +820,11 @@ function ExtBtn({ href, label }: { href: string; label: string }) {
  */
 export function SafeAdoption() {
   const t = useCopy(copy);
+  const parts = [
+    { id: "sa-evaluate", label: t.partEvaluate },
+    { id: "sa-trust", label: t.partTrust },
+    { id: "sa-limits", label: t.partLimits },
+  ];
   return (
     <div className="container">
       {/* ヒーロー */}
@@ -840,6 +844,7 @@ export function SafeAdoption() {
           {t.ctaDemo}
         </a>
       </div>
+      <PageNav navLabel={t.navLabel} parts={parts} />
 
       {/* ヒーロー直下の3カード */}
       <div style={{ height: 22 }} />
@@ -854,19 +859,26 @@ export function SafeAdoption() {
         ))}
       </div>
 
-      {/* 設計思想の5点 */}
+      {/* 設計思想の5点 — 各ピルは対応する下流セクションへのジャンプリンク */}
       <div className="card" style={{ marginTop: 16 }}>
         <div className="row" style={{ gap: 8 }}>
-          {PRINCIPLES.map((p) => (
-            <span key={p} className="pill delivered">
-              {p}
-            </span>
+          {PRINCIPLES.map(([label, target]) => (
+            <button
+              key={label}
+              className="pill delivered"
+              onClick={() => jumpTo(target)}
+              title={`${label} →`}
+            >
+              {label}
+            </button>
           ))}
         </div>
       </div>
 
+      {/* ===== Part 1 — 小さく安全に試す ===== */}
+      <PartHeader id="sa-evaluate" n={1} label={t.partEvaluate} />
+
       {/* §1 不安を認める */}
-      <div style={{ height: 36 }} />
       <div className="eyebrow">{t.s1Eyebrow}</div>
       <h2 className="section">{t.s1Title}</h2>
       <p className="sub">{t.s1Body}</p>
@@ -876,7 +888,7 @@ export function SafeAdoption() {
       <div className="eyebrow">{t.s2Eyebrow}</div>
       <h2 className="section">{t.s2Title}</h2>
       <p className="sub">{t.s2Sub}</p>
-      <div className="card">
+      <div className="card highlight">
         <Flow steps={t.s2Flow} />
       </div>
       <div className="callout" style={{ marginTop: 16 }}>
@@ -944,16 +956,14 @@ export function SafeAdoption() {
       <div className="callout" style={{ marginTop: 16 }}>
         {t.s5Key}
       </div>
-      <div style={{ height: 16 }} />
-      <b className="muted">{t.s5OverallTitle}</b>
-      <div style={{ height: 8 }} />
-      <div className="card">
-        <Flow steps={t.s5OverallFlow} />
-      </div>
+
+      {/* ===== Part 2 — なぜ信頼できるか ===== */}
+      <PartHeader id="sa-trust" n={2} label={t.partTrust} />
 
       {/* §6 Security by default */}
-      <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.s6Eyebrow}</div>
+      <div id="sa-security" className="eyebrow">
+        {t.s6Eyebrow}
+      </div>
       <h2 className="section">{t.s6Title}</h2>
       <p className="sub">{t.s6Sub}</p>
       <div className="grid cols-3">
@@ -972,7 +982,9 @@ export function SafeAdoption() {
 
       {/* §7 失敗時を設計する */}
       <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.s7Eyebrow}</div>
+      <div id="sa-failure" className="eyebrow">
+        {t.s7Eyebrow}
+      </div>
       <h2 className="section">{t.s7Title}</h2>
       <p className="sub">{t.s7Sub}</p>
       <div className="grid cols-3">
@@ -996,7 +1008,9 @@ export function SafeAdoption() {
 
       {/* §8 品質をどう確認しているか */}
       <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.s8Eyebrow}</div>
+      <div id="sa-evidence" className="eyebrow">
+        {t.s8Eyebrow}
+      </div>
       <h2 className="section">{t.s8Title}</h2>
       <p className="sub">{t.s8Sub}</p>
       <div className="card">
@@ -1017,8 +1031,10 @@ export function SafeAdoption() {
         <ExtBtn href={SECURITY} label={t.bSecurity} />
       </div>
 
+      {/* ===== Part 3 — 正直な範囲 ===== */}
+      <PartHeader id="sa-limits" n={3} label={t.partLimits} />
+
       {/* §9 現在地と限界 */}
-      <div style={{ height: 36 }} />
       <div className="eyebrow">{t.s9Eyebrow}</div>
       <h2 className="section">{t.s9Title}</h2>
       <div className="callout">
@@ -1034,7 +1050,9 @@ export function SafeAdoption() {
 
       {/* §10 保証しない範囲 */}
       <div style={{ height: 36 }} />
-      <div className="eyebrow">{t.s10Eyebrow}</div>
+      <div id="sa-boundaries" className="eyebrow">
+        {t.s10Eyebrow}
+      </div>
       <h2 className="section">{t.s10Title}</h2>
       <p className="sub">{t.s10Sub}</p>
       <div className="grid cols-2">
@@ -1058,7 +1076,7 @@ export function SafeAdoption() {
 
       {/* §11 協力歓迎 */}
       <div style={{ height: 36 }} />
-      <div className="card">
+      <div id="sa-feedback" className="card" style={{ scrollMarginTop: 80 }}>
         <div className="eyebrow">{t.s11Eyebrow}</div>
         <h2 className="section" style={{ marginTop: 0 }}>
           {t.s11Title}

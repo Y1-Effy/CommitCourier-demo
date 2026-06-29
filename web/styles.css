@@ -220,6 +220,8 @@ p.sub {
   font-weight: 700;
   color: var(--accent);
   margin-bottom: 8px;
+  /* Eyebrows mark section tops, so keep them clear of the sticky nav when used as jump targets. */
+  scroll-margin-top: 80px;
 }
 
 /* Code block */
@@ -257,6 +259,38 @@ p.sub {
 }
 .code .tok-num {
   color: #f2c14e;
+}
+
+/* Part dividers that group the explainer page into problem / fix / using-it. */
+.part-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 44px 0 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  scroll-margin-top: 80px;
+}
+.part-header .part-num {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  background: rgba(110, 168, 254, 0.12);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+/* Highlighted card for the page's payoff (the fix). */
+.card.highlight {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(110, 168, 254, 0.45),
+    0 10px 34px rgba(110, 168, 254, 0.12);
 }
 
 /* Flow diagrams on the explainer page (mono, non-highlighted, no copy button). */
@@ -310,6 +344,15 @@ table.tbl tr:hover td {
   font-family: var(--sans);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+/* Pills can also render as buttons (jump links); keep them looking identical but clickable. */
+button.pill {
+  border: none;
+  cursor: pointer;
+  line-height: inherit;
+}
+button.pill:hover {
+  filter: brightness(1.15);
 }
 .pill.pending {
   background: rgba(110, 168, 254, 0.15);
