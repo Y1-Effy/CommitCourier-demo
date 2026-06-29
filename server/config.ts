@@ -3,8 +3,13 @@ import "dotenv/config";
 /** Runtime configuration, loaded from the environment (see .env.example). */
 export const config = {
   databaseUrl: process.env.DATABASE_URL ?? "",
-  /** This site's own public URL — the dispatcher delivers webhooks to `${publicBaseUrl}/receiver`. */
-  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:8787",
+  /**
+   * This site's own public URL — the dispatcher delivers webhooks to `${publicBaseUrl}/receiver`.
+   * RENDER_EXTERNAL_URL is injected automatically on Render, so a Blueprint deploy needs no manual
+   * PUBLIC_BASE_URL. RECEIVER_HOST (server/courier.ts) is derived from this, so it stays in sync.
+   */
+  publicBaseUrl:
+    process.env.PUBLIC_BASE_URL ?? process.env.RENDER_EXTERNAL_URL ?? "http://localhost:8787",
   /** Standard Webhooks signing secret (must be "whsec_" + base64). */
   webhookSecret: process.env.DEMO_WEBHOOK_SECRET ?? "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",
   port: Number(process.env.PORT ?? 8787),

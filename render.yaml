@@ -1,0 +1,28 @@
+# Render Blueprint — one-click deploy of the live demo (web service + managed Postgres).
+# Deploy: https://render.com/deploy?repo=https://github.com/Y1-Effy/commitcourier-demo
+# (replace the repo URL above and in README with your fork once it has a public GitHub remote)
+services:
+  - type: web
+    name: commitcourier-demo
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    # migrate is idempotent; runs on every boot so the schema is always present.
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /api/stats
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: commitcourier-db
+          property: connectionString
+      # PUBLIC_BASE_URL is left unset on purpose: config.ts falls back to RENDER_EXTERNAL_URL,
+      # which Render injects with this service's own https URL.
+      - key: DEMO_WEBHOOK_SECRET
+        sync: false # generate your own: node -e "import('commitcourier').then(m=>console.log('whsec_'+m.generateSecretKey()))"
+
+databases:
+  - name: commitcourier-db
+    plan: free
+    postgresMajorVersion: "16"

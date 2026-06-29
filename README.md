@@ -1,6 +1,16 @@
 # CommitCourier — live demo & integration showcase
 
+[![npm](https://img.shields.io/npm/v/commitcourier.svg)](https://www.npmjs.com/package/commitcourier)
+![node](https://img.shields.io/badge/node-%3E%3D22.19-brightgreen)
+![postgres](https://img.shields.io/badge/postgres-12%2B-336791)
+[![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+<!-- CI badge: replace the slug with this demo repo's GitHub path once it has a remote -->
+
+[![CI](https://img.shields.io/github/actions/workflow/status/Y1-Effy/commitcourier-demo/ci.yml?label=CI)](https://github.com/Y1-Effy/commitcourier-demo/actions)
+
 A small, deployable site that **runs [CommitCourier](https://www.npmjs.com/package/commitcourier) for real** so people evaluating it can see the actual integration code and watch it work.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Y1-Effy/commitcourier-demo)
 
 - **Landing** — the dual-write problem and how riding your DB transaction solves it.
 - **Integrate** — the exact 5-step integration (the same code that powers this site).
@@ -69,9 +79,15 @@ npm start                     # one process: API + dispatcher + serves web/dist 
 
 CommitCourier's dispatcher is a long-lived loop, so deploy to a host that keeps a process alive — **Render / Railway / Fly.io** (not a serverless function platform; for those you'd switch to `relay.dispatchOnce` on a cron).
 
+**One-click (Render):** `render.yaml` is a Blueprint that provisions the web service + a managed Postgres. Click the **Deploy to Render** button above (replace the repo slug with your fork). `PUBLIC_BASE_URL` is auto-derived from Render's `RENDER_EXTERNAL_URL`, so the only thing to set is `DEMO_WEBHOOK_SECRET`.
+
+Manual (any host):
+
 1. Provision a Postgres (Neon/Supabase free tier is plenty).
 2. Set env vars: `DATABASE_URL`, `PUBLIC_BASE_URL` (your public https URL), `DEMO_WEBHOOK_SECRET`, `NODE_ENV=production`.
 3. Build command: `npm install && npm run build`. Start command: `npm run migrate && npm start`.
+
+> The OG/share URLs in `web/index.html` and `web/public/robots.txt` (and the badge/Deploy slugs above) use a placeholder origin — replace `https://commitcourier-demo.onrender.com` and `Y1-Effy/commitcourier-demo` with your real deployment once it's live. Regenerate the social card after editing `web/public/og.svg` with `node scripts/make-og.mjs`.
 
 In production `PUBLIC_BASE_URL` is a public host, so the SSRF guard passes it normally and no special allowlisting is needed.
 
