@@ -8,6 +8,8 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/Y1-Effy/commitcourier-demo/ci.yml?label=CI)](https://github.com/Y1-Effy/commitcourier-demo/actions)
 
+**日本語: [README.ja.md](./README.ja.md)**
+
 A small, deployable site that **runs [CommitCourier](https://www.npmjs.com/package/commitcourier) for real** so people evaluating it can see the actual integration code and watch it work.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Y1-Effy/commitcourier-demo)
