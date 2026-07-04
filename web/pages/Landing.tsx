@@ -131,9 +131,9 @@ const en: LandingCopy = {
   realHeading: "Everything on this page is real.",
   realSub: (
     <>
-      This site runs CommitCourier from npm against a live PostgreSQL database. The{" "}
-      <a href="#/demo">live demo</a> enqueues real rows and delivers real signed HTTP webhooks; the{" "}
-      <a href="#/stats">track record</a> shows its actual delivery counters.
+      Nothing here is mocked — the site itself is a CommitCourier consumer, installed from npm.
+      Drive it yourself on the <a href="#/demo">live demo</a>, or read its cumulative counters on
+      the <a href="#/stats">track record</a>.
     </>
   ),
   realCta: "Open the live demo",
@@ -222,11 +222,9 @@ const ja: LandingCopy = {
   realHeading: "このページの内容はすべて本物です。",
   realSub: (
     <>
-      このサイトは npm 版の CommitCourier を、稼働中の PostgreSQL
-      データベースに対して実行しています。
-      <a href="#/demo">ライブデモ</a>は実際の行を enqueue し、実際の署名付き HTTP Webhook
-      を配信します。
-      <a href="#/stats">稼働実績</a>では実際の配信カウンタを表示しています。
+      ここにモックはありません — このサイト自体が、npm で入れた CommitCourier の利用側アプリです。
+      <a href="#/demo">ライブデモ</a>で自分で動かすか、<a href="#/stats">稼働実績</a>
+      で累積カウンタを確認できます。
     </>
   ),
   realCta: "ライブデモを開く",

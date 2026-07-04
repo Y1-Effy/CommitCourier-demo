@@ -69,7 +69,8 @@ interface WhyCopy {
   fixFlow: string[];
   fixKey: ReactNode;
   deliveryTitle: string;
-  deliveryFeatures: [string, string][];
+  deliveryPills: string[];
+  deliveryRef: ReactNode;
 
   // 7. 2 つの利用パターン
   useEyebrow: string;
@@ -90,7 +91,7 @@ interface WhyCopy {
   scopeEyebrow: string;
   scopeTitle: string;
   scopeSub: ReactNode;
-  scopeList: string[];
+  scopeNote: ReactNode;
 
   // 末尾 CTA
   ctaTitle: string;
@@ -296,14 +297,20 @@ const en: WhyCopy = {
     </>
   ),
   deliveryTitle: "And the delivery after that",
-  deliveryFeatures: [
-    ["Background delivery", "A polling dispatcher drains the outbox."],
-    ["Signing", "HMAC-SHA256 (Standard Webhooks) receivers verify off the shelf."],
-    ["Retries + backoff", "Exponential backoff with jitter."],
-    ["DLQ + ledger", "Exhausted rows land in a DLQ; every attempt is recorded."],
-    ["Replay", "Re-drive a delivery from its recorded history."],
-    ["SSRF protection", "Private / loopback / cloud-metadata ranges blocked by default."],
+  deliveryPills: [
+    "Background delivery",
+    "Signing",
+    "Retries + backoff",
+    "DLQ + ledger",
+    "Replay",
+    "SSRF protection",
   ],
+  deliveryRef: (
+    <>
+      The full capability list lives on the <a href="#/">home page</a>; runnable code for each is on{" "}
+      <a href="#/integrate">Integrate</a>.
+    </>
+  ),
 
   useEyebrow: "Two ways to use it",
   useTitle: "On its own, or alongside the platform you already run",
@@ -355,25 +362,22 @@ const en: WhyCopy = {
     <>
       To stay honest about scope: CommitCourier owns the consistency between the business
       transaction and event registration, plus delivery, tracking, and retries after that. It does{" "}
-      <b>not</b> remove every webhook-related failure. It does not directly solve:
+      <b>not</b> remove every webhook-related failure — receiver bugs, receiver-side idempotency,
+      your own application logic, and PostgreSQL's own availability all stay yours.
     </>
   ),
-  scopeList: [
-    "Failures in the receiving system itself",
-    "Bugs in the receiver's business logic",
-    "Full exactly-once effects of side effects on the receiver",
-    "Idempotency on the receiver (that's the receiver's job)",
-    "PostgreSQL's own availability and backups",
-    "Errors in the event content itself",
-    "Bugs in your application's business logic",
-    "Full recovery of failures that originated in an external service",
-  ],
+  scopeNote: (
+    <>
+      The full responsibility boundary — what CommitCourier owns versus what you still own — is laid
+      out on <a href="#/safe-adoption">Built for safe adoption →</a>.
+    </>
+  ),
 
   ctaTitle: "Understand the problem, then watch it happen",
   ctaSub: (
     <>
-      Everything on this site is real. See the failure and retry behavior in the live demo, then
-      read the integration code.
+      You've seen the problem and the fix — now watch the failure and retry behavior play out in the
+      live demo, then read the integration code.
     </>
   ),
   ctaDemo: "▶ See it run live",
@@ -575,14 +579,20 @@ const ja: WhyCopy = {
     </>
   ),
   deliveryTitle: "その後の配信について",
-  deliveryFeatures: [
-    ["バックグラウンド配信", "ポーリング型 dispatcher が outbox を排出。"],
-    ["署名", "HMAC-SHA256（Standard Webhooks）。受信側は既製ツールで検証。"],
-    ["再試行 + バックオフ", "ジッタ付きの指数バックオフ。"],
-    ["DLQ + 台帳", "使い切った行は DLQ へ。全試行を記録。"],
-    ["replay", "記録された履歴から配信を再駆動。"],
-    ["SSRF 防御", "プライベート / ループバック / メタデータ範囲を既定でブロック。"],
+  deliveryPills: [
+    "バックグラウンド配信",
+    "署名",
+    "再試行 + バックオフ",
+    "DLQ + 台帳",
+    "replay",
+    "SSRF 防御",
   ],
+  deliveryRef: (
+    <>
+      機能の全体は<a href="#/">トップページ</a>に、それぞれの動くコードは
+      <a href="#/integrate">組み込み方</a>にあります。
+    </>
+  ),
 
   useEyebrow: "2 つの使い方",
   useTitle: "単体でも、既存の配信基盤との併用でも",
@@ -629,24 +639,21 @@ const ja: WhyCopy = {
     <>
       スコープを誠実に保つために: CommitCourier は、業務トランザクションとイベント登録の整合性、
       および登録後の配信・追跡・再試行を担当します。Webhook に関する<b>すべて</b>の障害を
-      なくすものではありません。次は直接は解決しません:
+      なくすものではありません — 受信側のバグ、受信側の idempotency、アプリ自身の業務ロジック、
+      PostgreSQL 自体の可用性は利用側の責務のままです。
     </>
   ),
-  scopeList: [
-    "Webhook 受信側システム自体の障害",
-    "受信側の業務ロジックのバグ",
-    "受信側での副作用の完全な exactly-once 保証",
-    "受信側の idempotency 実装（これは受信側の責務）",
-    "PostgreSQL 自体の可用性やバックアップ",
-    "イベント内容そのものの誤り",
-    "アプリケーションの業務ロジックの不具合",
-    "外部サービス側で発生した障害の完全な復旧",
-  ],
+  scopeNote: (
+    <>
+      責任境界の全体 — CommitCourier が持つ範囲と利用側が持つ範囲 — は
+      <a href="#/safe-adoption">安心して試すための設計 →</a>にまとめてあります。
+    </>
+  ),
 
   ctaTitle: "仕組みを理解したら、動く様子を確かめる",
   ctaSub: (
     <>
-      このサイトの内容はすべて本物です。失敗と再試行の動作をライブデモで確認し、実際の組み込みコードを
+      問題と解決策を見たら、次は失敗と再試行の動作をライブデモで確かめ、実際の組み込みコードを
       読んでみてください。
     </>
   ),
@@ -791,15 +798,17 @@ export function WhyWebhooks() {
       <div style={{ height: 20 }} />
       <b className="muted">{t.deliveryTitle}</b>
       <div style={{ height: 10 }} />
-      <div className="grid cols-3">
-        {t.deliveryFeatures.map(([title, desc]) => (
-          <div className="card" key={title}>
-            <b>{title}</b>
-            <p className="muted" style={{ margin: "6px 0 0" }}>
-              {desc}
-            </p>
-          </div>
-        ))}
+      <div className="card">
+        <div className="row" style={{ gap: 8 }}>
+          {t.deliveryPills.map((item) => (
+            <span key={item} className="pill delivered">
+              {item}
+            </span>
+          ))}
+        </div>
+        <p className="muted" style={{ margin: "10px 0 0" }}>
+          {t.deliveryRef}
+        </p>
       </div>
 
       {/* ===== Part 3 — 使い方と範囲 ===== */}
@@ -850,12 +859,8 @@ export function WhyWebhooks() {
       <div className="eyebrow">{t.scopeEyebrow}</div>
       <h2 className="section">{t.scopeTitle}</h2>
       <p className="sub">{t.scopeSub}</p>
-      <div className="card">
-        <ul className="muted" style={{ margin: 0 }}>
-          {t.scopeList.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
+      <div className="callout" style={{ marginTop: 16 }}>
+        {t.scopeNote}
       </div>
 
       {/* 末尾 CTA */}
