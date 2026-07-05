@@ -59,6 +59,11 @@ function useHashRoute(): string {
 export function App() {
   const route = useHashRoute();
   const labels = useCopy(navCopy);
+  // Reset scroll to the top whenever the route changes — hash-router page swaps otherwise keep the
+  // previous scroll position. In-page anchors (PageNav) don't touch the hash, so they're unaffected.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [route]);
   return (
     <>
       <nav className="nav">
