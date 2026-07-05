@@ -18,7 +18,7 @@ const STEP2 = `import { createRelay, createConsoleLogger } from "commitcourier";
 const relay = await createRelay({
   store,
   logger: createConsoleLogger(),
-  retry: { maxAttempts: 6, backoff: "exponential", baseMs: 1_000, capMs: 30_000, jitter: 0.2 },
+  retry: { maxAttempts: 6, backoff: "exponential", baseMs: 1_000, capMs: 60_000, jitter: 0.2 },
   delivery: { timeoutMs: 5_000 },
   ssrf: { blockPrivateRanges: true }, // ON by default
 });`;
@@ -47,7 +47,7 @@ try {
 }`;
 
 const STEP4 = `const dispatcher = relay.createDispatcher({
-  concurrency: 8,
+  concurrency: 4,
   pollIntervalMs: 1_000,
   reclaimAfterMs: 300_000,
 });
@@ -90,7 +90,10 @@ const en: IntegrateCopy = {
   callout: (
     <>
       Drivers: <span className="kbd">pg</span> and <span className="kbd">knex</span> are supported
-      as optional peers (Drizzle / Prisma too). Install whichever you use.
+      as optional peers (Drizzle / Prisma too). Install whichever you use. Optional extensions:{" "}
+      <span className="kbd">commitcourier/otel</span> for traces &amp; metrics, and{" "}
+      <span className="kbd">commitcourier/accelerator/pg</span> for LISTEN/NOTIFY low-latency
+      wakeups.
     </>
   ),
   steps: [
@@ -137,7 +140,9 @@ const ja: IntegrateCopy = {
   callout: (
     <>
       ドライバ: <span className="kbd">pg</span> と <span className="kbd">knex</span> をオプションの
-      peer として対応 (Drizzle / Prisma も)。使うものだけインストールしてください。
+      peer として対応 (Drizzle / Prisma も)。使うものだけインストールしてください。オプション拡張:{" "}
+      <span className="kbd">commitcourier/otel</span> でトレース＆メトリクス、
+      <span className="kbd">commitcourier/accelerator/pg</span> で LISTEN/NOTIFY による低遅延 wake。
     </>
   ),
   steps: [

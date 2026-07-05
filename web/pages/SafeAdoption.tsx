@@ -353,6 +353,10 @@ const en: SafeAdoptionCopy = {
       "at-least-once, stated honestly",
       "Delivery is at-least-once — not exactly-once. Every event carries an idempotency-key so the receiver can dedup.",
     ],
+    [
+      "Circuit breaker",
+      "Opt-in: after a threshold of consecutive failures a registered endpoint auto-disables so a dead receiver stops draining retries; re-enabling it resets the budget.",
+    ],
   ],
   s7Copy: (
     <>
@@ -679,6 +683,10 @@ const ja: SafeAdoptionCopy = {
     [
       "at-least-once を正直に",
       "配信は at-least-once であり exactly-once ではありません。各イベントは idempotency-key を持ち、受信側で重複排除できます。",
+    ],
+    [
+      "サーキットブレーカ",
+      "オプトイン: 連続失敗が閾値に達した登録エンドポイントを自動無効化し、死んだ受信先が retry を空回りさせ続けるのを止めます。再有効化でカウンタはリセットされます。",
     ],
   ],
   s7Copy: (

@@ -304,6 +304,9 @@ const en: WhyCopy = {
     "DLQ + ledger",
     "Replay",
     "SSRF protection",
+    "Endpoint registry",
+    "Key rotation",
+    "OpenTelemetry",
   ],
   deliveryRef: (
     <>
@@ -345,7 +348,9 @@ const en: WhyCopy = {
   comboDesc: (
     <>
       Keep your webhook service as is, and use CommitCourier to close the handoff gap between the
-      business transaction and the delivery layer.
+      business transaction and the delivery layer. An experimental <code>sink</code> transport can
+      even hand delivery off to that SaaS from the transactional outbox — so the handoff itself
+      becomes reliable (<a href="#/faq">see the FAQ</a>).
     </>
   ),
   comboFor: [
@@ -586,6 +591,9 @@ const ja: WhyCopy = {
     "DLQ + 台帳",
     "replay",
     "SSRF 防御",
+    "エンドポイント管理",
+    "鍵ローテーション",
+    "OpenTelemetry",
   ],
   deliveryRef: (
     <>
@@ -622,7 +630,9 @@ const ja: WhyCopy = {
   comboDesc: (
     <>
       既存の Webhook サービスはそのまま利用し、業務トランザクションから配信基盤へ渡すまでの handoff
-      gap を CommitCourier でふさげます。
+      gap を CommitCourier でふさげます。実験的な <code>sink</code> トランスポートを使えば、
+      トランザクショナルなアウトボックスから SaaS へ配信をハンドオフでき、ハンドオフ自体が信頼できる
+      経路になります（<a href="#/faq">FAQ 参照</a>）。
     </>
   ),
   comboFor: [
