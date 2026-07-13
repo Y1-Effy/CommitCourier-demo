@@ -37,6 +37,47 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Static fallback for non-JS readers (LLM/crawler raw-HTML fetches). The SPA replaces #root on
+         mount; this <noscript> stays out of the DOM when JS runs, so it has zero effect on real users.
+         Mirrors the Landing hero so the page's core pitch is legible without executing JavaScript. -->
+    <noscript>
+      <main>
+        <h1>CommitCourier — Webhooks that can't lie about your data</h1>
+        <p>
+          CommitCourier writes the outbound webhook in the <b>same Postgres transaction</b> as your
+          business change, so a webhook is sent <i>if and only if</i> the write committed. It then
+          delivers with Standard Webhooks signing, retries, a dead-letter queue, a full delivery
+          ledger and SSRF protection — on the Postgres you already run, with no Redis or SaaS
+          broker.
+        </p>
+        <p>Quickstart:</p>
+        <pre><code>import { Pool } from "pg";
+import { postgresStore } from "commitcourier/store/pg";
+import { createRelay } from "commitcourier";
+
+const store = postgresStore({ pool: new Pool() });
+const relay = await createRelay({ store });
+
+// Inside YOUR business transaction — commits or rolls back atomically:
+await relay.enqueue(trx, {
+  eventType: "order.created",
+  payload: { orderId, amount },
+  endpoint: { url: "https://customer.example.com/webhooks", secret },
+});</code></pre>
+        <nav aria-label="Sections">
+          <ul>
+            <li><a href="#/demo">Live demo</a> — enqueue in a transaction and watch delivery</li>
+            <li><a href="#/integrate">Integrate</a> — the full integration code</li>
+            <li><a href="#/why">Why webhooks</a> — the failure modes this prevents</li>
+            <li><a href="#/faq">FAQ</a></li>
+            <li>
+              <a href="https://www.npmjs.com/package/commitcourier">npm: commitcourier</a> ·
+              <a href="https://github.com/Y1-Effy/CommitCourier">GitHub</a>
+            </li>
+          </ul>
+        </nav>
+      </main>
+    </noscript>
     <script type="module" src="/main.tsx"></script>
   </body>
 </html>
