@@ -17,10 +17,14 @@ import { buildRelay, store, pool } from "./courier";
 import { receiverRouter } from "./receiver";
 import { getMode, getRecent } from "./receiver";
 import { createApiRouter } from "./routes";
-import { bumpMetric } from "./metrics";
+import { bumpMetric, bumpHeartbeat } from "./metrics";
 import { broadcast, clientCount } from "./sse";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// The eventType that marks an internal system heartbeat (as opposed to visitor/demo traffic). Used
+// both to count it separately (demo_heartbeat) and to route its receiver-side outcome.
+const HEARTBEAT_EVENT_TYPE = "system.heartbeat";
 
 async function main() {
   // Fail fast if the schema isn't there yet (same check createRelay does, with a friendlier hint).
@@ -32,18 +36,24 @@ async function main() {
     process.exit(1);
   }
 
-  // Delivery-outcome hooks drive both the durable counters and the live UI feed.
+  // Delivery-outcome hooks drive both the durable counters and the live UI feed. System-heartbeat
+  // deliveries are counted in their OWN table (demo_heartbeat) so they never inflate the demo track
+  // record, but they still broadcast to the live feed (the UI labels them distinctly).
   const hooks: DeliveryHooks = {
     onDelivered: (e) => {
-      void bumpMetric("delivered");
+      void (e.eventType === HEARTBEAT_EVENT_TYPE
+        ? bumpHeartbeat("delivered")
+        : bumpMetric("delivered"));
       broadcast({ type: "delivery", outcome: "delivered", event: e });
     },
     onRetry: (e) => {
-      void bumpMetric("retried");
+      void (e.eventType === HEARTBEAT_EVENT_TYPE
+        ? bumpHeartbeat("retried")
+        : bumpMetric("retried"));
       broadcast({ type: "delivery", outcome: "retry", event: e });
     },
     onDead: (e) => {
-      void bumpMetric("dead");
+      void (e.eventType === HEARTBEAT_EVENT_TYPE ? bumpHeartbeat("dead") : bumpMetric("dead"));
       broadcast({ type: "delivery", outcome: "dead", event: e });
     },
   };
@@ -117,11 +127,42 @@ async function main() {
     10 * 60 * 1000,
   );
 
+  // System heartbeat: a low-frequency self-delivery that keeps the demo visibly alive and proves the
+  // dispatcher's long-running stability. Counted in demo_heartbeat (never demo_metrics); every Nth beat
+  // is routed to the flaky path so retry -> DLQ is observable without any visitor action. Delivered to
+  // this site's own receiver (the same fixed, allowlisted target as the interactive demo).
+  const heartbeatTarget = `${config.publicBaseUrl}/receiver`;
+  let heartbeatSeq = 0;
+  const heartbeatTimer =
+    config.heartbeatIntervalMs > 0
+      ? setInterval(() => {
+          heartbeatSeq += 1;
+          const flaky =
+            config.heartbeatFlakyEvery > 0 && heartbeatSeq % config.heartbeatFlakyEvery === 0;
+          void relay
+            .enqueueUnsafe({
+              eventType: HEARTBEAT_EVENT_TYPE,
+              payload: {
+                heartbeat: true,
+                scenario: flaky ? "flaky" : "ok",
+                note: HEARTBEAT_EVENT_TYPE,
+                at: new Date().toISOString(),
+              },
+              endpoint: { url: heartbeatTarget, secret: config.webhookSecret },
+            })
+            .catch((err) => console.warn("[heartbeat] enqueue failed", String(err)));
+        }, config.heartbeatIntervalMs)
+      : undefined;
+  if (heartbeatTimer) {
+    console.log(`[commitcourier-demo] system heartbeat every ${config.heartbeatIntervalMs}ms`);
+  }
+
   // Graceful shutdown so an in-flight delivery isn't lost.
   const shutdown = async () => {
     console.log("\n[commitcourier-demo] shutting down...");
     clearInterval(snapshotTimer);
     clearInterval(pruneTimer);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     // Stop the dispatcher FIRST while the HTTP server is still up: deliveries target this same process's
     // self-receiver, so closing the server first would make in-flight attempts hit ECONNREFUSED.
     await dispatcher.stop();

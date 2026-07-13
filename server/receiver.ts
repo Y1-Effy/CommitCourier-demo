@@ -27,6 +27,8 @@ export interface ReceivedRecord {
   responded: number;
   /** True when this delivery's idempotency-key was already processed (receiver-side dedup). */
   duplicate: boolean;
+  /** True for the internal system heartbeat (drives a distinct label in the UI). */
+  heartbeat: boolean;
   at: string;
 }
 
@@ -63,14 +65,15 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
 
   // The body is the enqueued payload (the event type lives in the signature id, not the body).
   let eventType = "webhook";
+  let parsed: { orderId?: string; note?: string; heartbeat?: boolean; scenario?: string } = {};
   try {
-    const p = JSON.parse(raw) as { orderId?: string; note?: string };
-    eventType = p.orderId ?? p.note ?? "webhook";
+    parsed = JSON.parse(raw) as typeof parsed;
+    eventType = parsed.orderId ?? parsed.note ?? "webhook";
   } catch {
     /* ignore */
   }
 
-  const record = (responded: number, duplicate: boolean) => {
+  const record = (responded: number, duplicate: boolean, heartbeat = false) => {
     recent.unshift({
       webhookId: header("webhook-id"),
       eventType,
@@ -78,6 +81,7 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
       mode: currentMode,
       responded,
       duplicate,
+      heartbeat,
       at: new Date().toISOString(),
     });
     if (recent.length > 30) recent.length = 30;
@@ -90,6 +94,20 @@ receiverRouter.post("/", async (req: Request, res: Response) => {
   if (!verified) {
     record(401, false);
     res.status(401).json({ received: false, verified: false });
+    return;
+  }
+
+  // System heartbeat: its outcome is driven by the beat's OWN scenario, not the global receiver mode,
+  // so the automated liveness probe can demonstrate retry -> DLQ without hijacking what a visitor sees
+  // when they flip the flaky-endpoint switch. Heartbeats carry no idempotency-key (no dedup needed).
+  if (parsed.heartbeat === true) {
+    const flaky = parsed.scenario === "flaky";
+    record(flaky ? 500 : 200, false, true);
+    if (flaky) {
+      res.status(500).json({ received: false, heartbeat: true, simulatedFailure: true });
+      return;
+    }
+    res.status(200).json({ received: true, heartbeat: true });
     return;
   }
 

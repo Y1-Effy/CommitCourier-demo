@@ -35,6 +35,21 @@ async function main() {
   `);
   await pool.query(`INSERT INTO demo_metrics (id) VALUES (1) ON CONFLICT DO NOTHING`);
 
+  // Durable counters for the SYSTEM HEARTBEAT, kept separate from demo_metrics on purpose: the
+  // heartbeat is an internal liveness probe, not visitor/demo traffic, so it must never inflate the
+  // "operational track record" numbers. Same singleton shape as demo_metrics.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS demo_heartbeat (
+      id integer PRIMARY KEY DEFAULT 1,
+      delivered bigint NOT NULL DEFAULT 0,
+      retried bigint NOT NULL DEFAULT 0,
+      dead bigint NOT NULL DEFAULT 0,
+      started_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT demo_heartbeat_singleton CHECK (id = 1)
+    )
+  `);
+  await pool.query(`INSERT INTO demo_heartbeat (id) VALUES (1) ON CONFLICT DO NOTHING`);
+
   console.log("Done.");
   await pool.end();
 }

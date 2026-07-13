@@ -10,7 +10,7 @@ import type { PoolClient } from "pg";
 import type { Relay, Status } from "commitcourier";
 import { pool } from "./courier";
 import { config } from "./config";
-import { bumpMetric, readMetrics } from "./metrics";
+import { bumpMetric, readMetrics, readHeartbeat } from "./metrics";
 import { getMode, setMode, getRecent, type ReceiverMode } from "./receiver";
 import { addClient, removeClient } from "./sse";
 
@@ -105,7 +105,7 @@ export function createApiRouter(relay: Relay<PoolClient>): Router {
         endpoint: { url: SSRF_TARGET, secret: config.webhookSecret },
       });
       // Count it as enqueued: the SSRF block surfaces later as a `dead` outcome (via hooks), so
-      // without this the track record would show enqueued < delivered+dead and a skewed successRate.
+      // without this the track record would show enqueued < delivered+dead (an inconsistent ledger).
       await bumpMetric("enqueued");
       res.json({ ok: true, id, target: SSRF_TARGET });
     }),
@@ -181,8 +181,12 @@ export function createApiRouter(relay: Relay<PoolClient>): Router {
   r.get(
     "/metrics",
     wrap(async (_req, res) => {
-      const [metrics, stats] = await Promise.all([readMetrics(), relay.stats()]);
-      res.json({ metrics, stats });
+      const [metrics, stats, heartbeat] = await Promise.all([
+        readMetrics(),
+        relay.stats(),
+        readHeartbeat(),
+      ]);
+      res.json({ metrics, stats, heartbeat });
     }),
   );
 

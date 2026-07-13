@@ -117,4 +117,25 @@ describe("receiver", () => {
     }
     expect(getRecent().length).toBe(30);
   });
+
+  it("routes a system heartbeat by its own scenario, ignoring the global receiver mode", async () => {
+    // Even with the visitor-facing receiver forced to fail, an "ok" heartbeat still succeeds...
+    setMode("fail");
+    const ok = await postSigned(
+      JSON.stringify({ heartbeat: true, scenario: "ok", note: "system.heartbeat" }),
+    );
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject({ received: true, heartbeat: true });
+    expect(getRecent()[0]?.heartbeat).toBe(true);
+    expect(getRecent()[0]?.eventType).toBe("system.heartbeat");
+
+    // ...and a "flaky" heartbeat still fails (to drive retry → DLQ) even while the mode is "ok".
+    setMode("ok");
+    const flaky = await postSigned(
+      JSON.stringify({ heartbeat: true, scenario: "flaky", note: "system.heartbeat" }),
+    );
+    expect(flaky.status).toBe(500);
+    expect(await flaky.json()).toMatchObject({ received: false, heartbeat: true });
+    expect(getRecent()[0]?.heartbeat).toBe(true);
+  });
 });
