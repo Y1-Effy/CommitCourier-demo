@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
+/** The eventType the server tags internal system-heartbeat deliveries with (see server/index.ts). */
+export const HEARTBEAT_EVENT_TYPE = "system.heartbeat";
+
 export interface OutboxItem {
   id: string;
   eventType: string;
@@ -25,6 +28,28 @@ export interface Attempt {
 export interface Stats {
   counts: Record<string, number>;
   oldestPendingAt: string | null;
+}
+
+export interface OpMetrics {
+  enqueued: number;
+  delivered: number;
+  retried: number;
+  dead: number;
+  startedAt: string;
+}
+
+/** Durable counters for the internal system heartbeat (kept separate from the demo track record). */
+export interface HeartbeatMetrics {
+  delivered: number;
+  retried: number;
+  dead: number;
+  startedAt: string;
+}
+
+export interface MetricsResponse {
+  metrics: OpMetrics;
+  stats: Stats;
+  heartbeat: HeartbeatMetrics;
 }
 
 export async function api<T = unknown>(
@@ -64,6 +89,8 @@ export interface ReceivedRecord {
   mode: string;
   responded: number;
   duplicate?: boolean;
+  /** True for the internal system heartbeat (drives a distinct label in the UI). */
+  heartbeat?: boolean;
   at: string;
 }
 

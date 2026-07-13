@@ -1,7 +1,13 @@
 import { Fragment, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { CodeBlock } from "../components/CodeBlock";
-import { api, useLiveSnapshot, type Attempt, type OutboxItem } from "../lib/api";
+import {
+  api,
+  useLiveSnapshot,
+  HEARTBEAT_EVENT_TYPE,
+  type Attempt,
+  type OutboxItem,
+} from "../lib/api";
 import { useCopy, useStatusLabel, type Locale } from "../i18n";
 
 const ENQUEUE_CODE = `await client.query("BEGIN");
@@ -61,6 +67,8 @@ interface LiveDemoCopy {
   feedEmpty: string;
   attempt: (n: number) => string;
   outcomeLabels: Record<Outcome, string>;
+  systemBadge: string;
+  hideSystem: string;
 }
 
 const en: LiveDemoCopy = {
@@ -130,6 +138,8 @@ const en: LiveDemoCopy = {
   feedEmpty: "Hook events (delivered / retry / dead) appear here.",
   attempt: (n) => `attempt ${n}`,
   outcomeLabels: { delivered: "delivered", retry: "retry", dead: "dead" },
+  systemBadge: "system",
+  hideSystem: "Hide system heartbeats",
 };
 
 const ja: LiveDemoCopy = {
@@ -199,6 +209,8 @@ const ja: LiveDemoCopy = {
   feedEmpty: "Hook イベント (delivered / retry / dead) がここに表示されます。",
   attempt: (n) => `試行 ${n}`,
   outcomeLabels: { delivered: "配信", retry: "リトライ", dead: "失効" },
+  systemBadge: "システム",
+  hideSystem: "システムのハートビートを隠す",
 };
 
 const copy: Record<Locale, LiveDemoCopy> = { en, ja };
@@ -299,6 +311,7 @@ function ReceiverControl({
     verified: boolean;
     responded: number;
     duplicate?: boolean;
+    heartbeat?: boolean;
     at: string;
   }[];
 }) {
@@ -332,6 +345,7 @@ function ReceiverControl({
           <div key={r.webhookId} className="row" style={{ fontSize: 12, gap: 8 }}>
             <span className="mono muted">{tag(r.webhookId)}</span>
             <span className="mono">{r.eventType}</span>
+            {r.heartbeat && <span className="pill observed">{t.systemBadge}</span>}
             <span className={r.verified ? "pill delivered" : "pill dead"}>
               {r.verified ? t.sigOk : t.sigBad}
             </span>
@@ -434,7 +448,13 @@ function OutboxTable({ t, rows }: { t: LiveDemoCopy; rows: OutboxItem[] }) {
                   <td>
                     <span className="mono muted">{tag(r.id)}</span>
                   </td>
-                  <td>{r.eventType}</td>
+                  <td>
+                    {r.eventType === HEARTBEAT_EVENT_TYPE ? (
+                      <span className="pill observed">{t.systemBadge}</span>
+                    ) : (
+                      r.eventType
+                    )}
+                  </td>
                   <td>
                     <Pill status={r.status} />
                   </td>
@@ -485,15 +505,22 @@ export function LiveDemo() {
   const t = useCopy(copy);
   const { snapshot, feed } = useLiveSnapshot();
   const [toast, setToast] = useState<string>("");
+  const [hideSystem, setHideSystem] = useState(false);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 3500);
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const rows = snapshot?.outbox ?? [];
+  const allRows = snapshot?.outbox ?? [];
   const mode = snapshot?.receiver.mode ?? "ok";
-  const recent = snapshot?.receiver.recent ?? [];
+  const allRecent = snapshot?.receiver.recent ?? [];
+  // The system heartbeat streams into every panel; let a visitor mute it to focus on their own events.
+  const rows = hideSystem ? allRows.filter((r) => r.eventType !== HEARTBEAT_EVENT_TYPE) : allRows;
+  const recent = hideSystem ? allRecent.filter((r) => !r.heartbeat) : allRecent;
+  const visibleFeed = hideSystem
+    ? feed.filter((f) => f.event.eventType !== HEARTBEAT_EVENT_TYPE)
+    : feed;
 
   return (
     <div className="container wide">
@@ -505,6 +532,15 @@ export function LiveDemo() {
         {t.subtitle}
         {!snapshot && <span style={{ color: "var(--amber)" }}>{t.connecting}</span>}
       </p>
+
+      <label className="row" style={{ gap: 6, fontSize: 13, marginBottom: 12, cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={hideSystem}
+          onChange={(e) => setHideSystem(e.target.checked)}
+        />
+        {t.hideSystem}
+      </label>
 
       {toast && (
         <div className="callout flash" style={{ marginBottom: 16 }}>
@@ -525,9 +561,9 @@ export function LiveDemo() {
         <h2 className="section" style={{ marginTop: 0 }}>
           {t.feedTitle}
         </h2>
-        {feed.length === 0 && <p className="muted">{t.feedEmpty}</p>}
+        {visibleFeed.length === 0 && <p className="muted">{t.feedEmpty}</p>}
         <div style={{ maxHeight: 200, overflow: "auto", fontFamily: "var(--mono)", fontSize: 13 }}>
-          {feed.map((f) => (
+          {visibleFeed.map((f) => (
             <div
               key={`${f.event.id}-${f.outcome}-${f.event.attempt}`}
               className="row"
@@ -539,7 +575,11 @@ export function LiveDemo() {
                 {t.outcomeLabels[f.outcome]}
               </span>
               <span className="mono muted">{tag(f.event.id)}</span>
-              <span>{f.event.eventType}</span>
+              {f.event.eventType === HEARTBEAT_EVENT_TYPE ? (
+                <span className="pill observed">{t.systemBadge}</span>
+              ) : (
+                <span>{f.event.eventType}</span>
+              )}
               <span className="muted">{t.attempt(f.event.attempt)}</span>
               <span className="muted">{f.event.status ?? f.event.error ?? ""}</span>
             </div>
