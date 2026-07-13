@@ -89,7 +89,9 @@ Manual (any host):
 2. Set env vars: `DATABASE_URL`, `PUBLIC_BASE_URL` (your public https URL), `DEMO_WEBHOOK_SECRET`, `NODE_ENV=production`.
 3. Build command: `npm install && npm run build`. Start command: `npm run migrate && npm start`.
 
-> The OG/share URLs in `web/index.html` and `web/public/robots.txt` (and the badge/Deploy slugs above) use a placeholder origin — replace `https://commitcourier-demo.onrender.com` and `Y1-Effy/commitcourier-demo` with your real deployment once it's live. Regenerate the social card after editing `web/public/og.svg` with `node scripts/make-og.mjs`.
+> **Not on Render?** `RENDER_EXTERNAL_URL` is injected only on Render, so on a VPS or any other host you must set `PUBLIC_BASE_URL` yourself (e.g. `https://commitcourier-demo.xvps.jp`). If it's left unset, delivery falls back to `http://localhost:8787` and the live demo loop breaks — the dispatcher can't reach its own receiver through the SSRF guard.
+
+> The OG/share URLs in `web/index.html` and `web/public/robots.txt` (and the badge/Deploy slugs above) use a placeholder origin — replace `https://commitcourier-demo.xvps.jp` and `Y1-Effy/commitcourier-demo` with your real deployment once it's live. Regenerate the social card after editing `web/public/og.svg` with `node scripts/make-og.mjs`.
 
 In production `PUBLIC_BASE_URL` is a public host, so the SSRF guard passes it normally and no special allowlisting is needed.
 

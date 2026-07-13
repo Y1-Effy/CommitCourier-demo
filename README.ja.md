@@ -85,7 +85,9 @@ CommitCourier の dispatcher は長寿命ループなので、プロセスを生
 2. 環境変数を設定: `DATABASE_URL`・`PUBLIC_BASE_URL`（公開 https URL）・`DEMO_WEBHOOK_SECRET`・`NODE_ENV=production`。
 3. Build コマンド: `npm install && npm run build`。Start コマンド: `npm run migrate && npm start`。
 
-> `web/index.html` と `web/public/robots.txt` の OG/共有 URL（および上のバッジ/Deploy slug）はプレースホルダ origin を使っています — 公開後に `https://commitcourier-demo.onrender.com` と `Y1-Effy/commitcourier-demo` を実際のデプロイ先に置換してください。`web/public/og.svg` を編集したら `node scripts/make-og.mjs` でソーシャルカードを再生成します。
+> **Render 以外の場合:** `RENDER_EXTERNAL_URL` は Render 専用なので、VPS など他ホストでは `PUBLIC_BASE_URL`（例: `https://commitcourier-demo.xvps.jp`）を自分で設定する必要があります。未設定だと配信先が `http://localhost:8787` にフォールバックし、dispatcher が自分の receiver に SSRF ガード越しで到達できず、ライブデモのループが壊れます。
+
+> `web/index.html` と `web/public/robots.txt` の OG/共有 URL（および上のバッジ/Deploy slug）はプレースホルダ origin を使っています — 公開後に `https://commitcourier-demo.xvps.jp` と `Y1-Effy/commitcourier-demo` を実際のデプロイ先に置換してください。`web/public/og.svg` を編集したら `node scripts/make-og.mjs` でソーシャルカードを再生成します。
 
 本番では `PUBLIC_BASE_URL` が公開ホストなので、SSRF ガードを通常通り通過し、特別な allowlist は不要です。
 
