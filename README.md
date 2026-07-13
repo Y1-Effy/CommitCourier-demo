@@ -97,12 +97,14 @@ In production `PUBLIC_BASE_URL` is a public host, so the SSRF guard passes it no
 
 ## Environment variables
 
-| Var                   | Purpose                                                                       |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `DATABASE_URL`        | PostgreSQL connection string (TLS auto-enabled for non-local hosts).          |
-| `PUBLIC_BASE_URL`     | This site's own URL; webhooks are delivered to `${PUBLIC_BASE_URL}/receiver`. |
-| `DEMO_WEBHOOK_SECRET` | Standard Webhooks signing secret (`whsec_` + base64).                         |
-| `PORT`                | Server port (default 8787).                                                   |
+| Var                     | Purpose                                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`          | PostgreSQL connection string (TLS auto-enabled for non-local hosts).                                                                                                                        |
+| `PUBLIC_BASE_URL`       | This site's own URL; webhooks are delivered to `${PUBLIC_BASE_URL}/receiver`.                                                                                                               |
+| `DEMO_WEBHOOK_SECRET`   | Standard Webhooks signing secret (`whsec_` + base64).                                                                                                                                       |
+| `PORT`                  | Server port (default 8787).                                                                                                                                                                 |
+| `HEARTBEAT_INTERVAL_MS` | System-heartbeat interval in ms (default 60000; `0` disables it).                                                                                                                           |
+| `HEARTBEAT_FLAKY_EVERY` | Fault-injection: every Nth heartbeat fails on purpose (retry → DLQ). Default `0` (OFF) — on the unattended heartbeat an injected failure just looks broken; raise it only for a chaos demo. |
 
 ## License
 

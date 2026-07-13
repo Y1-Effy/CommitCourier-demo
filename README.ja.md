@@ -93,12 +93,14 @@ CommitCourier の dispatcher は長寿命ループなので、プロセスを生
 
 ## 環境変数
 
-| Var                   | 用途                                                              |
-| --------------------- | ----------------------------------------------------------------- |
-| `DATABASE_URL`        | PostgreSQL 接続文字列（非ローカルホストは TLS 自動 ON）。         |
-| `PUBLIC_BASE_URL`     | 自サイトの URL。Webhook は `${PUBLIC_BASE_URL}/receiver` に配信。 |
-| `DEMO_WEBHOOK_SECRET` | Standard Webhooks 署名鍵（`whsec_` + base64）。                   |
-| `PORT`                | サーバポート（既定 8787）。                                       |
+| Var                     | 用途                                                                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`          | PostgreSQL 接続文字列（非ローカルホストは TLS 自動 ON）。                                                                                                            |
+| `PUBLIC_BASE_URL`       | 自サイトの URL。Webhook は `${PUBLIC_BASE_URL}/receiver` に配信。                                                                                                    |
+| `DEMO_WEBHOOK_SECRET`   | Standard Webhooks 署名鍵（`whsec_` + base64）。                                                                                                                      |
+| `PORT`                  | サーバポート（既定 8787）。                                                                                                                                          |
+| `HEARTBEAT_INTERVAL_MS` | system heartbeat の間隔 (ms、既定 60000。`0` で無効化)。                                                                                                             |
+| `HEARTBEAT_FLAKY_EVERY` | フォールト注入: N 回に1回のビートを意図的に失敗（retry → DLQ）。既定 `0`（OFF）— 無人の heartbeat では注入失敗が「壊れている」と見えるため。chaos デモ時のみ有効化。 |
 
 ## ライセンス
 
