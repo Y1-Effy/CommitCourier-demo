@@ -60,6 +60,8 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
 - `npm run migrate` — DDL 適用。`store.migrate()` は冪等。
 - `npm run db:up` / `db:down` / `db:reset` / `db:logs` — `docker-compose.yml` の Postgres を操作。
   `db:reset` は volume ごと破棄して再作成 + migrate。`.env.example` の既定 `DATABASE_URL` と一致。
+  `db:up` / `db:reset` は前段で `scripts/ensure-docker.mjs` を実行し、Docker engine が未起動なら
+  Docker Desktop を自動起動して準備完了まで待つ（Windows 前提の起動パス探索。他 OS は best-effort）。
 - **VSCode の F5**（"Debug server" / "Debug full stack"）は `preLaunchTask: db-ready`
   （`.vscode/tasks.json`）で DB 起動 → migrate を自動実行してからサーバを起動する。Docker 必須。
   managed Postgres を使うなら `DATABASE_URL` を向けて `db:*` をスキップ。
