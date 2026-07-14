@@ -8,6 +8,7 @@ import { Playground } from "./pages/Playground";
 import { Stats } from "./pages/Stats";
 import { Faq } from "./pages/Faq";
 import { LocaleToggle } from "./components/LocaleToggle";
+import { LiveIndicator } from "./components/LiveIndicator";
 import { Footer } from "./components/Footer";
 import { NPM, REPO } from "./lib/links";
 import { useCopy, type Locale } from "./i18n";
@@ -71,6 +72,7 @@ export function App() {
           <span className="dot" />
           CommitCourier
         </a>
+        <LiveIndicator />
         {TAB_IDS.map((id) => (
           <a key={id} className={`tab ${route === id ? "active" : ""}`} href={`#/${id}`}>
             {labels[id]}

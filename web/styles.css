@@ -60,7 +60,6 @@ pre {
   font-weight: 800;
   letter-spacing: -0.02em;
   font-size: 18px;
-  margin-right: auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -71,6 +70,12 @@ pre {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   box-shadow: 0 0 12px var(--accent);
+}
+/* Live-stream indicator sits next to the brand; its auto margin pushes the tabs to the right. */
+.nav .live-indicator {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
 }
 .nav a.tab {
   color: var(--muted);

@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
 import { CodeBlock } from "../components/CodeBlock";
 import { useCopy, type Locale } from "../i18n";
-import { useEventStream } from "../lib/api";
 import type { ReactNode } from "react";
 
 const QUICKSTART = `import { Pool } from "pg";
@@ -51,9 +49,6 @@ interface LandingCopy {
   realHeading: string;
   realSub: ReactNode;
   realCta: string;
-  liveLabel: string;
-  liveWaiting: string;
-  liveAgo: (s: number) => string;
 }
 
 const en: LandingCopy = {
@@ -142,9 +137,6 @@ const en: LandingCopy = {
     </>
   ),
   realCta: "Open the live demo",
-  liveLabel: "live",
-  liveWaiting: "connecting to the live stream…",
-  liveAgo: (s) => (s < 90 ? `last delivery ${s}s ago` : `last delivery ${Math.round(s / 60)}m ago`),
 };
 
 const ja: LandingCopy = {
@@ -236,36 +228,9 @@ const ja: LandingCopy = {
     </>
   ),
   realCta: "ライブデモを開く",
-  liveLabel: "稼働中",
-  liveWaiting: "ライブストリームに接続中…",
-  liveAgo: (s) => (s < 90 ? `直近の配信 ${s}秒前` : `直近の配信 ${Math.round(s / 60)}分前`),
 };
 
 const copy: Record<Locale, LandingCopy> = { en, ja };
-
-/**
- * A compact "the site is alive" indicator: subscribes to the SSE delivery stream and shows how long
- * ago the last webhook was delivered. The system heartbeat keeps this ticking even with no visitors.
- */
-function LiveIndicator({ t }: { t: LandingCopy }) {
-  const [lastAt, setLastAt] = useState<number | null>(null);
-  const [, setTick] = useState(0);
-  useEventStream((e) => {
-    if (e.type === "delivery") setLastAt(Date.now());
-  });
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const seen = lastAt !== null;
-  const ago = seen ? Math.max(0, Math.round((Date.now() - lastAt) / 1000)) : 0;
-  return (
-    <div className="row" style={{ gap: 8, alignItems: "center", marginTop: 16, fontSize: 13 }}>
-      <span className={`pill ${seen ? "delivered" : "in_flight"}`}>● {t.liveLabel}</span>
-      <span className="muted">{seen ? t.liveAgo(ago) : t.liveWaiting}</span>
-    </div>
-  );
-}
 
 function Compare({ t }: { t: LandingCopy }) {
   return (
@@ -313,7 +278,6 @@ export function Landing() {
             {t.cta2}
           </a>
         </div>
-        <LiveIndicator t={t} />
       </div>
 
       <div className="container">
