@@ -29,7 +29,7 @@
     "check": "npm run typecheck && npm run lint && npm run lint:lang && npm run format:check && npm run test"
   },
   "dependencies": {
-    "commitcourier": "^0.3.0",
+    "commitcourier": "^0.4.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
