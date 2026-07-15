@@ -72,6 +72,10 @@ async function main() {
 
   const app = express();
   app.disable("x-powered-by");
+  // Off by default, which would compile app.get("/why") to /^\/why\/?$/i and answer /WHY with a 200 —
+  // a duplicate URL the canonical-folding middleware below can't catch, since it compares exact
+  // strings. With this on, /WHY simply 404s.
+  app.set("case sensitive routing", true);
   // Behind a single reverse proxy in production (nginx on the VPS). Without this, `req.ip` is the proxy's IP, so
   // the write rate-limiter would key every visitor into one shared bucket (and express-rate-limit v7
   // logs an X-Forwarded-For validation error). One hop = trust the first proxy only.
@@ -89,6 +93,22 @@ async function main() {
   // shell.
   const webDist = resolve(__dirname, "../web/dist");
   if (existsSync(webDist)) {
+    // The directory existing is not the same as the build having finished. `vite build` (phase 1)
+    // creates web/dist and writes index.html; the per-route files and 404.html only arrive in phase 3
+    // (scripts/prerender.mjs). Boot on a half-built dist and the server looks healthy — "/" is 200 —
+    // while every other route and every 404 throws ENOENT. Fail loudly here instead, the same way
+    // store.diagnose() above refuses to run against a schema that isn't there.
+    const missing = [...ROUTES.map((r) => r.file), NOT_FOUND_FILE].filter(
+      (file) => !existsSync(resolve(webDist, file)),
+    );
+    if (missing.length > 0) {
+      console.error(
+        `web/dist is incomplete — missing ${missing.join(", ")}. Run \`npm run build\` (it is three ` +
+          `phases: build:client, build:ssr, prerender — a partial run leaves exactly this state).`,
+      );
+      process.exit(1);
+    }
+
     const sendHtml = (res: express.Response, file: string, status = 200) =>
       res.status(status).sendFile(resolve(webDist, file), {
         // no-cache means "revalidate", not "don't store": the ETag still yields a 304 for unchanged
@@ -111,21 +131,29 @@ async function main() {
       express.static(resolve(webDist, "assets"), { immutable: true, maxAge: "1y", index: false }),
     );
 
-    // Fold the two ways of spelling a route onto its canonical URL, BEFORE the route table below.
+    // Fold the other spellings of a route onto its canonical URL, BEFORE the route table below.
     // Express routing is non-strict, so app.get("/why") would otherwise answer "/why/" with a 200
     // and leave the duplicate live.
     //   /why/       -> /why   (trailing slash)
     //   /why.html   -> /why   (the prerendered file; its canonical URL is extensionless)
     //   /index.html -> /
     // A 301 rather than a 404 because these are real, linkable spellings: consolidate them onto the
-    // canonical URL instead of throwing the inbound link away.
+    // canonical URL instead of throwing the inbound link away — and carry the query string over, or
+    // a /why/?utm_source=x visit loses its attribution on the way to /why.
+    //
+    // Note the guard `fileForPath(trimmed)` is an exact match against the route table, which is the
+    // only thing keeping this off the open-redirect list: "//evil.com/" trims to "//evil.com", finds
+    // no row, and falls through to the 404. Loosen it to a prefix/normalising match and that stops
+    // being true.
     app.get("*", (req, res, next) => {
+      const q = req.originalUrl.indexOf("?");
+      const query = q === -1 ? "" : req.originalUrl.slice(q);
       const trimmed = req.path.replace(/\/+$/, "");
       if (trimmed !== "" && trimmed !== req.path && fileForPath(trimmed)) {
-        return res.redirect(301, trimmed);
+        return res.redirect(301, trimmed + query);
       }
       const named = ROUTES.find((r) => `/${r.file}` === req.path);
-      if (named) return res.redirect(301, named.path);
+      if (named) return res.redirect(301, named.path + query);
       next();
     });
 
@@ -149,7 +177,14 @@ async function main() {
     (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
       console.error("[api] request failed:", err);
       if (res.headersSent) return;
-      res.status(500).json({ error: "internal error" });
+      // Honour a status the error already carries. sendFile/send attach one — an ENOENT arrives here
+      // as status 404 — and reporting that as a 500 would both lie to the client and hide the cause.
+      // Anything without a sane status is a genuine internal error.
+      const status =
+        (err as { status?: unknown; statusCode?: unknown } | null)?.status ??
+        (err as { statusCode?: unknown } | null)?.statusCode;
+      const code = typeof status === "number" && status >= 400 && status <= 599 ? status : 500;
+      res.status(code).json({ error: code === 500 ? "internal error" : "request failed" });
     },
   );
 
