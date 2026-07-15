@@ -55,7 +55,15 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
 ```
 
 - `npm run dev` — server（tsx watch）と web（vite）を concurrently で同時起動。
-- `npm run build` — フロントを web/dist へバンドル。
+- `npm run build` — **3段構成**。順序が不変条件:
+  1. `build:client`（`vite build`）— ブラウザ用バンドルを web/dist へ。**web/dist を空にして
+     `web/public/*` をコピーする**。
+  2. `build:ssr`（`vite build --ssr entry-server.tsx`）— 事前レンダリング用バンドルを web/dist-ssr へ。
+     エントリは **root（= `web/`）相対**で書く。`web/entry-server.tsx` と書くと `web/web/...` を探す。
+     CLI で渡しているのは、値なしの `--ssr` が `build.ssr` を `true` で上書きしてしまうため。
+  3. `prerender`（`scripts/prerender.mjs`）— dist-ssr を import し、web/dist に各ルートの HTML +
+     404.html + sitemap.xml を**追加**する。1 の前に走らせると出力が消える。
+     ビルド時に devDependencies が要る（`react-dom/server`）。本番実行時には不要。
 - `npm start` — 本番: 1プロセスで API + dispatcher + web/dist 配信。
 - `npm run migrate` — DDL 適用。`store.migrate()` は冪等。
 - `npm run db:up` / `db:down` / `db:reset` / `db:logs` — `docker-compose.yml` の Postgres を操作。
@@ -103,6 +111,13 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
   `cipher: createAesGcmCipher(key)` を使う形に直す。
 - **receiver は raw body 必須**。署名は受信バイト列に対して計算するので、`/receiver` だけ
   `express.text()` を `express.json()` より**前**に適用している（`server/index.ts`）。順序を崩さない。
+- **`compression()` は必ず `/api` ルータより後にマウントする**（`server/index.ts`）。`/api/events` は
+  SSE で `res.write()` しか呼ばず、compression が待つ `res.flush()` を呼ばない。グローバルに挿すと
+  **ライブフィードがエラーも出さずに沈黙する**。`/api` を先に登録しておけば構造的に到達しない。
+  上の `express.text()` → `express.json()` と同じクラスの、順序依存の地雷。
+- **`web/dist-ssr` は3つの ignore に書く必要がある**（`.gitignore` / `.prettierignore` /
+  `eslint.config.mjs`）。gitignore 意味論では `web/dist` は `web/dist-ssr` に前方一致**しない**ため、
+  書き忘れると `npm run check` が生成物を lint / format しようとして落ちる。
 - **retry/delivery のチューニングはデモ向けに短い**（`baseMs: 1s`, `maxAttempts: 6`, `timeoutMs: 5s`）。
   retry/DLQ を秒単位で観測できるようにする意図。本番値とは別物。
 - **`receiver.ts` の mode/recent と `sse.ts` の clients はプロセス内メモリ**（モジュールスコープ）。
@@ -119,8 +134,20 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
 
 ## フロント構成
 
-- ルーティングは hash ベース（`web/App.tsx` の `useHashRoute`、ライブラリ無し）。
-- ページ: Landing / Integrate / LiveDemo / Playground / Stats。
+- **`web/routes.ts` がルートの単一の真実**。純データ・英語のみ・import ゼロなので、`server/index.ts`
+  からも安全に import できる（React も ja コピーも server の依存グラフに入らない）。**ここに行を足すと、
+  en/ja のナビラベルと en/ja の SEO エントリが揃うまで `tsc` が落ちる。**
+- ルーティングは **History API ベース**（`web/lib/router.tsx`、ライブラリ無し）。`RouterProvider` の
+  `initialPath` は必須 prop で、これが事前レンダリング時の初期ルート注入を兼ねる（レンダリング中に
+  ブラウザグローバルへ触らないことの保証）。内部遷移は **document レベルのクリック傍受**で捌くので、
+  コピー中は素の `<a href="/why">` を書けばよい（`#/why` はもう使わない）。
+- ページ: Landing / WhyWebhooks / SafeAdoption / Integrate / LiveDemo / Playground / Stats / Faq。
+  **各ページは実 URL を持ち、ビルド時に静的 HTML へ事前レンダリングされる**（`web/entry-server.tsx`）。
+  ページ別の title/description/OG/canonical は `web/seo.ts`、JSON-LD は `web/seo/jsonld.tsx`。
+- **`vite preview` で事前レンダリングを検証しないこと** — SPA フォールバックで `/why` に index.html を
+  返すため、正しいページが誤った head で出て「動いている」と誤認する。`npm start`（Express）だけが本物。
+- 見出しは**ルートごとに `<h1>` ちょうど1つ**（`h1.page-title`。Landing のみ hero の h1）。
+  カード/パネルの見出しはページ直下の兄弟セクションなので `h2` のまま（h3 にすると h1→h3 の飛び越しになる）。
 - ライブ更新は SSE（`web/lib/api.ts` の `useLiveSnapshot` / `useEventStream`）。
 - **Playground は `commitcourier/core` をブラウザに直 import** して実行（依存ゼロ・Web標準のみ）。
   sign/verify, evaluateIp, backoffMs, AES-GCM cipher, 状態機械を client-side で動かす。
@@ -131,8 +158,16 @@ npm run dev                   # Vite :5173（/api と /receiver を :8787 にプ
 
 外部ライブラリは使わず、`web/i18n/index.tsx` の自前 Context 実装。
 
+> **事前レンダリングは英語のみ**で、クライアントは `hydrateRoot` ではなく **`createRoot`** を使う。
+> ロケールはクライアント検出なので、hydrate すると ja 訪問者では毎回 hydration mismatch が起き、
+> React はどのみちサーバのマークアップを捨てる。**代償として ja 訪問者には一瞬の英語フラッシュが出る**が、
+> これは `/ja/*` の URL 木を持たないことの意図的な割り切り。`hydrateRoot` に「修正」しないこと。
+> `document.title` はもう `LocaleProvider` の所有ではない（ルート×ロケールの関数なので
+> `web/lib/head.ts` の `applyHead` が持つ）。
+
 - `LocaleProvider`（`web/main.tsx` で `<App/>` を包む）が現在ロケールを保持。初期値は
-  localStorage(`cc-locale`) → 無ければ `navigator.language`（`ja` なら日本語）。切替で
+  localStorage(`cc-locale`) → 無ければ `navigator.language`（`ja` なら日本語）。事前レンダリング時は
+  `initialLocale="en"` で固定（`detectInitial` にも `typeof window === "undefined"` ガードあり）。切替で
   localStorage 保存・`<html lang>`・`document.title` を更新。トグルは `web/components/LocaleToggle.tsx`。
 - **各ページに辞書をコロケーション**するのが基本パターン:
   ```tsx

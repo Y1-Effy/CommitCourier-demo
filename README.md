@@ -91,7 +91,7 @@ Manual (any host):
 
 > **Not on Render?** `RENDER_EXTERNAL_URL` is injected only on Render, so on a VPS or any other host you must set `PUBLIC_BASE_URL` yourself (e.g. `https://commitcourier-demo.xvps.jp`). If it's left unset, delivery falls back to `http://localhost:8787` and the live demo loop breaks — the dispatcher can't reach its own receiver through the SSRF guard.
 
-> The OG/share URLs in `web/index.html` and `web/public/robots.txt` (and the badge/Deploy slugs above) use a placeholder origin — replace `https://commitcourier-demo.xvps.jp` and `Y1-Effy/commitcourier-demo` with your real deployment once it's live. Regenerate the social card after editing `web/public/og.svg` with `node scripts/make-og.mjs`.
+> This demo's live origin, `https://commitcourier-demo.xvps.jp`, is hardcoded in three places: `ORIGIN` in `web/seo.ts` (which drives every canonical URL, `og:url` and the generated `sitemap.xml`), the `og:image`/`twitter:image` and home-route tags in `web/index.html`, and the `Sitemap:` line in `web/public/robots.txt`. It is not derived from `PUBLIC_BASE_URL` — that value never reaches the built HTML. If you fork and deploy elsewhere, replace the origin in those three files, plus `Y1-Effy/commitcourier-demo` in the badge/Deploy slugs above. Regenerate the social card after editing `web/public/og.svg` with `node scripts/make-og.mjs`.
 
 In production `PUBLIC_BASE_URL` is a public host, so the SSRF guard passes it normally and no special allowlisting is needed.
 

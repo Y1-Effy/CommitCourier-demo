@@ -1,3 +1,5 @@
+# Gitignore semantics: "web/dist" does NOT match web/dist-ssr, so the SSR bundle needs its own line.
 web/dist
+web/dist-ssr
 node_modules
 package-lock.json

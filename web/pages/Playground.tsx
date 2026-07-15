@@ -479,9 +479,7 @@ export function Playground() {
   return (
     <div className="container wide">
       <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 30 }}>
-        {t.heading}
-      </h2>
+      <h1 className="page-title">{t.heading}</h1>
       <p className="sub">{t.intro}</p>
       <SigningPanel />
       <SsrfPanel />

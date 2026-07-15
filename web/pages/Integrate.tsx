@@ -81,8 +81,8 @@ const en: IntegrateCopy = {
   heading: "Add reliable webhooks in five steps",
   intro: (
     <>
-      This is the exact integration powering the <a href="#/demo">live demo</a> — the same code
-      lives in <span className="kbd">server/courier.ts</span> and{" "}
+      This is the exact integration powering the <a href="/demo">live demo</a> — the same code lives
+      in <span className="kbd">server/courier.ts</span> and{" "}
       <span className="kbd">server/routes.ts</span> of this repo. Framework-agnostic; works with
       Express, Fastify, Nest, or none.
     </>
@@ -121,7 +121,7 @@ const en: IntegrateCopy = {
   footer: (
     <>
       Watch every one of these steps execute against a real database on the{" "}
-      <a href="#/demo">live demo →</a>
+      <a href="/demo">live demo →</a>
     </>
   ),
 };
@@ -131,7 +131,7 @@ const ja: IntegrateCopy = {
   heading: "信頼できる Webhook を5ステップで追加",
   intro: (
     <>
-      これは<a href="#/demo">ライブデモ</a>を動かしているのとまったく同じ組み込みコードです —
+      これは<a href="/demo">ライブデモ</a>を動かしているのとまったく同じ組み込みコードです —
       同じものが このリポジトリの <span className="kbd">server/courier.ts</span> と{" "}
       <span className="kbd">server/routes.ts</span>{" "}
       にあります。フレームワーク非依存で、Express・Fastify・ Nest でも、何もなくても動きます。
@@ -169,7 +169,7 @@ const ja: IntegrateCopy = {
   ],
   footer: (
     <>
-      これら全ステップが実際のデータベースに対して動く様子を<a href="#/demo">ライブデモ →</a>
+      これら全ステップが実際のデータベースに対して動く様子を<a href="/demo">ライブデモ →</a>
       で確認できます。
     </>
   ),
@@ -201,9 +201,7 @@ export function Integrate() {
   return (
     <div className="container">
       <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 32 }}>
-        {t.heading}
-      </h2>
+      <h1 className="page-title">{t.heading}</h1>
       <p className="sub">{t.intro}</p>
 
       <div className="callout" style={{ margin: "12px 0 24px" }}>

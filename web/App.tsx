@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Landing } from "./pages/Landing";
 import { WhyWebhooks } from "./pages/WhyWebhooks";
 import { SafeAdoption } from "./pages/SafeAdoption";
@@ -7,26 +6,22 @@ import { LiveDemo } from "./pages/LiveDemo";
 import { Playground } from "./pages/Playground";
 import { Stats } from "./pages/Stats";
 import { Faq } from "./pages/Faq";
+import { NotFound } from "./components/NotFound";
 import { LocaleToggle } from "./components/LocaleToggle";
 import { LiveIndicator } from "./components/LiveIndicator";
 import { Footer } from "./components/Footer";
 import { NPM, REPO } from "./lib/links";
-import { useCopy, type Locale } from "./i18n";
+import { useRouteId } from "./lib/router";
+import { applyHead } from "./lib/head";
+import { ROUTES, pathForRoute, type RouteId } from "./routes";
+import { headFor } from "./seo";
+import { useCopy, useLocale, type Locale } from "./i18n";
+import { useEffect } from "react";
 
-const TAB_IDS = [
-  "",
-  "why",
-  "safe-adoption",
-  "integrate",
-  "demo",
-  "playground",
-  "stats",
-  "faq",
-] as const;
-
-const navCopy: Record<Locale, Record<(typeof TAB_IDS)[number], string>> = {
+// Keyed by RouteId, so adding a row to ROUTES fails `tsc` until both locales have a label.
+const navCopy: Record<Locale, Record<RouteId, string>> = {
   en: {
-    "": "Home",
+    home: "Home",
     why: "Why webhooks",
     "safe-adoption": "Safe adoption",
     integrate: "Integrate",
@@ -36,7 +31,7 @@ const navCopy: Record<Locale, Record<(typeof TAB_IDS)[number], string>> = {
     faq: "FAQ",
   },
   ja: {
-    "": "ホーム",
+    home: "ホーム",
     why: "Webhook の課題",
     "safe-adoption": "安心して試す",
     integrate: "組み込み方",
@@ -47,34 +42,30 @@ const navCopy: Record<Locale, Record<(typeof TAB_IDS)[number], string>> = {
   },
 };
 
-function useHashRoute(): string {
-  const [route, setRoute] = useState(() => location.hash.replace(/^#\/?/, ""));
-  useEffect(() => {
-    const on = () => setRoute(location.hash.replace(/^#\/?/, ""));
-    window.addEventListener("hashchange", on);
-    return () => window.removeEventListener("hashchange", on);
-  }, []);
-  return route;
-}
-
 export function App() {
-  const route = useHashRoute();
+  const route = useRouteId();
   const labels = useCopy(navCopy);
-  // Reset scroll to the top whenever the route changes — hash-router page swaps otherwise keep the
-  // previous scroll position. In-page anchors (PageNav) don't touch the hash, so they're unaffected.
+  const { locale } = useLocale();
+  // The prerendered file lands with the right head already; this keeps it right as the visitor
+  // navigates or switches locale. Effects don't run during prerender, so it's a no-op there.
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0 });
-  }, [route]);
+    if (route) applyHead(headFor(route, locale));
+  }, [route, locale]);
   return (
     <>
       <nav className="nav">
-        <a className="brand" href="#/">
+        <a className="brand" href="/">
           <span className="dot" />
           CommitCourier
         </a>
         <LiveIndicator />
-        {TAB_IDS.map((id) => (
-          <a key={id} className={`tab ${route === id ? "active" : ""}`} href={`#/${id}`}>
+        {ROUTES.map(({ id }) => (
+          <a
+            key={id}
+            className={`tab ${route === id ? "active" : ""}`}
+            href={pathForRoute(id)}
+            aria-current={route === id ? "page" : undefined}
+          >
             {labels[id]}
           </a>
         ))}
@@ -86,7 +77,7 @@ export function App() {
         </a>
         <LocaleToggle />
       </nav>
-      {route === "" && <Landing />}
+      {route === "home" && <Landing />}
       {route === "why" && <WhyWebhooks />}
       {route === "safe-adoption" && <SafeAdoption />}
       {route === "integrate" && <Integrate />}
@@ -94,6 +85,7 @@ export function App() {
       {route === "playground" && <Playground />}
       {route === "stats" && <Stats />}
       {route === "faq" && <Faq />}
+      {route === null && <NotFound />}
       <Footer />
     </>
   );

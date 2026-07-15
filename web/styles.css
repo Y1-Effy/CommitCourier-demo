@@ -209,10 +209,28 @@ pre {
   }
 }
 
-h2.section {
+/* Widened from `h2.section` so section headings can be h2 or h3 as the outline requires. Nothing
+   else in this sheet targets .section, so the lower specificity is safe. */
+.section {
   font-size: 26px;
   letter-spacing: -0.02em;
   margin: 8px 0 6px;
+}
+
+/* The page-level heading — exactly one per route, on every page except Landing (whose h1 is the
+   hero, styled above). Replaces the old `h2.section` with an inline fontSize of 30/32. */
+h1.page-title {
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 8px 0 6px;
+}
+
+/* Card and panel headings, nested under a section. */
+.card-title {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
 }
 p.sub {
   color: var(--muted);

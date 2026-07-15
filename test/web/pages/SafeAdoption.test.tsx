@@ -20,7 +20,7 @@ describe("SafeAdoption", () => {
   it("renders the English title, central message and honest framing", () => {
     const { container } = renderPage();
     expect(
-      screen.getByRole("heading", { level: 2, name: /Built for Safe Adoption/i }),
+      screen.getByRole("heading", { level: 1, name: /Built for Safe Adoption/i }),
     ).toBeInTheDocument();
     // central message + observe-first + the honest at-least-once note must be present
     expect(container.textContent).toContain("Back out cleanly if it isn't for you.");
@@ -40,7 +40,7 @@ describe("SafeAdoption", () => {
     localStorage.setItem("cc-locale", "ja");
     const { container } = renderPage();
     expect(
-      screen.getByRole("heading", { level: 2, name: /安心して試すための設計/ }),
+      screen.getByRole("heading", { level: 1, name: /安心して試すための設計/ }),
     ).toBeInTheDocument();
     expect(container.textContent).toContain("すぐ入る。送らず試せる。合わなければ、すぐ戻せる。");
   });

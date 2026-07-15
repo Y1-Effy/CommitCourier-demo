@@ -8,10 +8,15 @@
  * This mirrors how you'd embed CommitCourier in your own backend.
  */
 import express from "express";
+import compression from "compression";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type { DeliveryHooks } from "commitcourier";
+// The route table is pure data with no imports, so pulling it in here brings no React and no
+// localized copy into the server's module graph. It is the single source of truth for which URLs
+// exist: a page cannot be added to the app without the server learning to serve it.
+import { ROUTES, NOT_FOUND_FILE, fileForPath } from "../web/routes";
 import { config } from "./config";
 import { buildRelay, store, pool } from "./courier";
 import { receiverRouter } from "./receiver";
@@ -79,11 +84,63 @@ async function main() {
   app.use(express.json({ limit: "256kb" }));
   app.use("/api", createApiRouter(relay));
 
-  // Serve the built frontend in production (single deployable).
+  // Serve the built frontend in production (single deployable). Every route is prerendered to its
+  // own file by scripts/prerender.mjs, so this maps URL -> file rather than falling back to one SPA
+  // shell.
   const webDist = resolve(__dirname, "../web/dist");
   if (existsSync(webDist)) {
-    app.use(express.static(webDist));
-    app.get("*", (_req, res) => res.sendFile(resolve(webDist, "index.html")));
+    const sendHtml = (res: express.Response, file: string, status = 200) =>
+      res.status(status).sendFile(resolve(webDist, file), {
+        // no-cache means "revalidate", not "don't store": the ETag still yields a 304 for unchanged
+        // HTML, while a deploy takes effect immediately.
+        cacheControl: false,
+        headers: { "Cache-Control": "no-cache" },
+      });
+    const sendNotFound = (res: express.Response) => sendHtml(res, NOT_FOUND_FILE, 404);
+
+    // Mounted HERE, below the /api router, and that placement is load-bearing: /api/events is an SSE
+    // stream that only ever calls res.write(), never the res.flush() this middleware waits for.
+    // Mounted globally it would buffer the live feed into silence, with no error anywhere. Requests
+    // to /api are handled above and never reach this, which makes the mistake structurally
+    // impossible. Same class of order-dependent trap as express.text() before express.json().
+    app.use(compression());
+
+    // Vite content-hashes these filenames, so a URL's bytes never change — cache them forever.
+    app.use(
+      "/assets",
+      express.static(resolve(webDist, "assets"), { immutable: true, maxAge: "1y", index: false }),
+    );
+
+    // Fold the two ways of spelling a route onto its canonical URL, BEFORE the route table below.
+    // Express routing is non-strict, so app.get("/why") would otherwise answer "/why/" with a 200
+    // and leave the duplicate live.
+    //   /why/       -> /why   (trailing slash)
+    //   /why.html   -> /why   (the prerendered file; its canonical URL is extensionless)
+    //   /index.html -> /
+    // A 301 rather than a 404 because these are real, linkable spellings: consolidate them onto the
+    // canonical URL instead of throwing the inbound link away.
+    app.get("*", (req, res, next) => {
+      const trimmed = req.path.replace(/\/+$/, "");
+      if (trimmed !== "" && trimmed !== req.path && fileForPath(trimmed)) {
+        return res.redirect(301, trimmed);
+      }
+      const named = ROUTES.find((r) => `/${r.file}` === req.path);
+      if (named) return res.redirect(301, named.path);
+      next();
+    });
+
+    for (const route of ROUTES) {
+      app.get(route.path, (_req, res) => sendHtml(res, route.file));
+    }
+
+    // Any other *.html is a build artifact with no canonical URL of its own (404.html included).
+    app.get(/\.html$/, (_req, res) => sendNotFound(res));
+
+    // The remaining web/public assets: og.png, favicon.svg, robots.txt, sitemap.xml. index:false so
+    // "/" is answered by the route table above (with its own Cache-Control), not by this mount.
+    app.use(express.static(webDist, { index: false, maxAge: "1h" }));
+
+    app.get("*", (_req, res) => sendNotFound(res));
   }
 
   // Final error handler: async route rejections are routed here (see `wrap` in routes.ts) so a failed

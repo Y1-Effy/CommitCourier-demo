@@ -30,7 +30,7 @@ const en: StatsCopy = {
   intro: (
     <>
       Every number here is real, recorded in the live PostgreSQL database behind this site — and
-      it's all visitor-driven. On the <a href="#/demo">demo</a> you send deliveries, and you also
+      it's all visitor-driven. On the <a href="/demo">demo</a> you send deliveries, and you also
       deliberately fail some (routing to a 500 endpoint, or the blocked SSRF target) to watch
       retries and the dead-letter queue in action — so the retries and dead-letter counts below are
       those demonstrations, not outages.
@@ -69,7 +69,7 @@ const ja: StatsCopy = {
   intro: (
     <>
       ここの数字はすべて、このサイトを支える稼働中の PostgreSQL データベースに記録された実データで、
-      すべて訪問者の操作によるものです。<a href="#/demo">デモ</a>
+      すべて訪問者の操作によるものです。<a href="/demo">デモ</a>
       では配信を送るほか、あえて失敗させる （500 を返すエンドポイントや、ブロックされる SSRF
       先へ送る）ことで retry や dead-letter queue の 動きを確認できます —
       つまり下のリトライ数・dead-letter 数はその実演の結果であり、障害ではありません。
@@ -137,17 +137,30 @@ export function Stats() {
     return () => clearInterval(timer);
   }, []);
 
-  if (!data) return <div className="container">{t.loading}</div>;
+  // The heading and intro render before the counters arrive, and must stay ABOVE the !data guard:
+  // this page is prerendered, so an early return over them would make the whole static document the
+  // single word "Loading…" — no h1, no prose, nothing for a crawler to read.
+  const header = (
+    <>
+      <div className="eyebrow">{t.eyebrow}</div>
+      <h1 className="page-title">{t.heading}</h1>
+      <p className="sub">{t.intro}</p>
+    </>
+  );
+
+  if (!data)
+    return (
+      <div className="container">
+        {header}
+        <p className="muted">{t.loading}</p>
+      </div>
+    );
   const { metrics: m, stats, heartbeat: hb } = data;
   const counts = stats.counts ?? {};
 
   return (
     <div className="container">
-      <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 30 }}>
-        {t.heading}
-      </h2>
-      <p className="sub">{t.intro}</p>
+      {header}
 
       <div className="grid cols-3" style={{ marginBottom: 18 }}>
         <Metric num={m.delivered.toLocaleString()} lbl={t.delivered} cls="green" />

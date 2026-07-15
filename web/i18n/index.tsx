@@ -11,13 +11,10 @@ export type Locale = "en" | "ja";
 
 const STORAGE_KEY = "cc-locale";
 
-/** Document title per locale (index.html ships the English one statically). */
-const TITLE: Record<Locale, string> = {
-  en: "CommitCourier — Transactional Outbound Webhooks, live demo",
-  ja: "CommitCourier — トランザクショナルなアウトバウンド Webhook、ライブデモ",
-};
-
 function detectInitial(): Locale {
+  // The prerender renders English (see web/seo.ts): there is no visitor to detect, and the static
+  // markup must match the `lang="en"` and English OG tags index.html ships.
+  if (typeof window === "undefined") return "en";
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "en" || saved === "ja") return saved;
@@ -34,12 +31,23 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>(detectInitial);
+/**
+ * `initialLocale` lets the prerender pin the locale instead of sniffing a visitor that doesn't
+ * exist. It stays optional so tests can render the provider bare.
+ */
+export function LocaleProvider({
+  children,
+  initialLocale,
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const [locale, setLocale] = useState<Locale>(() => initialLocale ?? detectInitial());
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = TITLE[locale];
+    // document.title is NOT set here: the title is a function of route AND locale, so it belongs to
+    // applyHead() in web/lib/head.ts, which App drives from both.
     try {
       localStorage.setItem(STORAGE_KEY, locale);
     } catch {

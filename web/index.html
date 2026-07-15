@@ -1,83 +1,67 @@
 <!doctype html>
-<html lang="ja">
+<!-- lang matches the STATIC markup, which is English: index.html is the prerender template and every
+     page is prerendered from the English copy. LocaleProvider rewrites documentElement.lang on mount
+     when the visitor resolves to ja. -->
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1020" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="canonical" href="https://commitcourier-demo.xvps.jp/" />
 
+    <!-- Everything between the SEO markers is REGENERATED PER ROUTE by scripts/prerender.mjs from
+         web/seo.ts. The values below are the home route's, kept literal so `vite dev` (which never
+         runs the prerender step) still shows correct metadata. Do not hand-edit them — edit
+         web/seo.ts. prerender.mjs throws if either marker goes missing. -->
+    <!-- SEO:START -->
+    <link rel="canonical" href="https://commitcourier-demo.xvps.jp/" />
     <title>CommitCourier — Transactional Outbound Webhooks, live demo</title>
     <meta
       name="description"
       content="CommitCourier rides your own DB transaction all the way to webhook-grade HTTP delivery. Live demo with real Postgres, signing, retries, DLQ and replay."
     />
-
-    <!-- Open Graph (replace the URL with your deployed origin) -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="CommitCourier" />
     <meta property="og:url" content="https://commitcourier-demo.xvps.jp/" />
     <meta property="og:title" content="CommitCourier — webhooks that can't lie about your data" />
     <meta
       property="og:description"
       content="Transactional outbound webhooks: write the webhook in the same Postgres transaction as your business change. Signing, retries, DLQ, ledger and SSRF protection — running live."
     />
-    <meta property="og:image" content="https://commitcourier-demo.xvps.jp/og.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-
-    <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="CommitCourier — webhooks that can't lie about your data" />
     <meta
       name="twitter:description"
       content="Transactional outbound webhooks on the Postgres you already run. Signing, retries, DLQ, ledger, SSRF — running live."
     />
+    <!-- SEO:END -->
+    <!-- JSONLD -->
+
+    <!-- Route-invariant tags live outside the markers. -->
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CommitCourier" />
+    <meta property="og:locale" content="en_US" />
+    <!-- Same URL serves ja: the locale is switched client-side, not by a separate document. -->
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:image" content="https://commitcourier-demo.xvps.jp/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="CommitCourier — transactional outbound webhooks on the Postgres you already run."
+    />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://commitcourier-demo.xvps.jp/og.png" />
+    <meta
+      name="twitter:image:alt"
+      content="CommitCourier — transactional outbound webhooks on the Postgres you already run."
+    />
   </head>
   <body>
+    <!-- scripts/prerender.mjs fills this div with the route's static markup. The old hand-written
+         <noscript> Landing mirror is gone: every route now ships real HTML here, so the mirror would
+         only duplicate the h1 and the hero prose in the raw HTML of "/". -->
     <div id="root"></div>
-    <!-- Static fallback for non-JS readers (LLM/crawler raw-HTML fetches). The SPA replaces #root on
-         mount; this <noscript> stays out of the DOM when JS runs, so it has zero effect on real users.
-         Mirrors the Landing hero so the page's core pitch is legible without executing JavaScript. -->
-    <noscript>
-      <main>
-        <h1>CommitCourier — Webhooks that can't lie about your data</h1>
-        <p>
-          CommitCourier writes the outbound webhook in the <b>same Postgres transaction</b> as your
-          business change, so a webhook is sent <i>if and only if</i> the write committed. It then
-          delivers with Standard Webhooks signing, retries, a dead-letter queue, a full delivery
-          ledger and SSRF protection — on the Postgres you already run, with no Redis or SaaS
-          broker.
-        </p>
-        <p>Quickstart:</p>
-        <pre><code>import { Pool } from "pg";
-import { postgresStore } from "commitcourier/store/pg";
-import { createRelay } from "commitcourier";
-
-const store = postgresStore({ pool: new Pool() });
-const relay = await createRelay({ store });
-
-// Inside YOUR business transaction — commits or rolls back atomically:
-await relay.enqueue(trx, {
-  eventType: "order.created",
-  payload: { orderId, amount },
-  endpoint: { url: "https://customer.example.com/webhooks", secret },
-});</code></pre>
-        <nav aria-label="Sections">
-          <ul>
-            <li><a href="#/demo">Live demo</a> — enqueue in a transaction and watch delivery</li>
-            <li><a href="#/integrate">Integrate</a> — the full integration code</li>
-            <li><a href="#/why">Why webhooks</a> — the failure modes this prevents</li>
-            <li><a href="#/faq">FAQ</a></li>
-            <li>
-              <a href="https://www.npmjs.com/package/commitcourier">npm: commitcourier</a> ·
-              <a href="https://github.com/Y1-Effy/CommitCourier">GitHub</a>
-            </li>
-          </ul>
-        </nav>
-      </main>
-    </noscript>
     <script type="module" src="/main.tsx"></script>
   </body>
 </html>

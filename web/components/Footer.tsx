@@ -68,13 +68,39 @@ export function Footer() {
           <p className="muted" style={{ margin: 0, maxWidth: 460 }}>
             {t.tagline}
           </p>
+          {/* Intrinsic sizes from shields.io, so the browser reserves each box before the SVG
+              arrives instead of jumping 0 -> 88px. The npm badge's width tracks the version string,
+              so 80 is approximate. Height is also pinned by `.badges img` in styles.css.
+
+              loading="lazy" defers nothing at this page length — measured, the footer sits ~4.5k px
+              down, still inside Chromium's load-early threshold, so the badges are fetched on load
+              anyway. It's kept because it is correct for a below-the-fold footer and costs nothing,
+              not because it saves a request here. */}
           <div className="badges" style={{ marginTop: 14 }}>
             <a href={NPM_URL} target="_blank" rel="noopener noreferrer">
-              <img src="https://img.shields.io/npm/v/commitcourier.svg" alt="npm version" />
+              <img
+                src="https://img.shields.io/npm/v/commitcourier.svg"
+                width={80}
+                height={20}
+                loading="lazy"
+                decoding="async"
+                alt="npm version"
+              />
             </a>
-            <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" />
+            <img
+              src="https://img.shields.io/badge/license-MIT-blue"
+              width={78}
+              height={20}
+              loading="lazy"
+              decoding="async"
+              alt="MIT license"
+            />
             <img
               src="https://img.shields.io/badge/node-%3E%3D22.19-brightgreen"
+              width={96}
+              height={20}
+              loading="lazy"
+              decoding="async"
               alt="node >= 22.19"
             />
           </div>

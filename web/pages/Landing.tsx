@@ -98,13 +98,13 @@ const en: LandingCopy = {
   learnMore: (
     <>
       Want the full breakdown — failure modes, recovery cost, and how this sits next to an existing
-      webhook service? <a href="#/why">Why webhook delivery is hard →</a>
+      webhook service? <a href="/why">Why webhook delivery is hard →</a>
     </>
   ),
   tryLink: (
     <>
       New library, weighing the risk? See how it's built to be added small, tried without sending,
-      and removed cleanly: <a href="#/safe-adoption">Built for safe adoption →</a>
+      and removed cleanly: <a href="/safe-adoption">Built for safe adoption →</a>
     </>
   ),
   quickstartEyebrow: "60-second integration",
@@ -132,8 +132,8 @@ const en: LandingCopy = {
   realSub: (
     <>
       Nothing here is mocked — the site itself is a CommitCourier consumer, installed from npm.
-      Drive it yourself on the <a href="#/demo">live demo</a>, or read its cumulative counters on
-      the <a href="#/stats">track record</a>.
+      Drive it yourself on the <a href="/demo">live demo</a>, or read its cumulative counters on the{" "}
+      <a href="/stats">track record</a>.
     </>
   ),
   realCta: "Open the live demo",
@@ -188,14 +188,14 @@ const ja: LandingCopy = {
   learnMore: (
     <>
       失敗パターン・復旧コスト・既存 Webhook サービスとの関係まで詳しく:{" "}
-      <a href="#/why">なぜ Webhook 配信は難しいのか →</a>
+      <a href="/why">なぜ Webhook 配信は難しいのか →</a>
     </>
   ),
   tryLink: (
     <>
       新しいライブラリで導入を迷っていますか？
       小さく入れて・送らず試して・きれいに外せる設計について:{" "}
-      <a href="#/safe-adoption">安心して試すための設計 →</a>
+      <a href="/safe-adoption">安心して試すための設計 →</a>
     </>
   ),
   quickstartEyebrow: "60秒で組み込み",
@@ -223,7 +223,7 @@ const ja: LandingCopy = {
   realSub: (
     <>
       ここにモックはありません — このサイト自体が、npm で入れた CommitCourier の利用側アプリです。
-      <a href="#/demo">ライブデモ</a>で自分で動かすか、<a href="#/stats">稼働実績</a>
+      <a href="/demo">ライブデモ</a>で自分で動かすか、<a href="/stats">稼働実績</a>
       で累積カウンタを確認できます。
     </>
   ),
@@ -264,17 +264,44 @@ export function Landing() {
       <div className="hero">
         <h1>{t.heroTitle}</h1>
         <p className="lead">{t.heroLead}</p>
+        {/* Intrinsic sizes so the browser reserves each box before the SVG arrives from shields.io.
+            No loading="lazy" here: these sit right under the h1, above the fold, so deferring them
+            would only delay what a visitor sees first. See Footer for the sizing caveat. */}
         <div className="badges">
-          <img src="https://img.shields.io/npm/v/commitcourier.svg" alt="npm" />
-          <img src="https://img.shields.io/badge/node-%3E%3D22.19-brightgreen" alt="node" />
-          <img src="https://img.shields.io/badge/license-MIT-blue" alt="license" />
-          <img src="https://img.shields.io/badge/postgres-12%2B-336791" alt="postgres" />
+          <img
+            src="https://img.shields.io/npm/v/commitcourier.svg"
+            width={80}
+            height={20}
+            decoding="async"
+            alt="npm"
+          />
+          <img
+            src="https://img.shields.io/badge/node-%3E%3D22.19-brightgreen"
+            width={96}
+            height={20}
+            decoding="async"
+            alt="node"
+          />
+          <img
+            src="https://img.shields.io/badge/license-MIT-blue"
+            width={78}
+            height={20}
+            decoding="async"
+            alt="license"
+          />
+          <img
+            src="https://img.shields.io/badge/postgres-12%2B-336791"
+            width={90}
+            height={20}
+            decoding="async"
+            alt="postgres"
+          />
         </div>
         <div className="cta">
-          <a className="btn primary" href="#/demo">
+          <a className="btn primary" href="/demo">
             {t.cta1}
           </a>
-          <a className="btn" href="#/integrate">
+          <a className="btn" href="/integrate">
             {t.cta2}
           </a>
         </div>
@@ -330,7 +357,7 @@ export function Landing() {
           <h2 className="section">{t.realHeading}</h2>
           <p className="sub">{t.realSub}</p>
           <div className="cta">
-            <a className="btn primary" href="#/demo">
+            <a className="btn primary" href="/demo">
               {t.realCta}
             </a>
           </div>

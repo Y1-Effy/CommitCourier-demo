@@ -525,9 +525,7 @@ export function LiveDemo() {
   return (
     <div className="container wide">
       <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 30 }}>
-        {t.title}
-      </h2>
+      <h1 className="page-title">{t.title}</h1>
       <p className="sub">
         {t.subtitle}
         {!snapshot && <span style={{ color: "var(--amber)" }}>{t.connecting}</span>}

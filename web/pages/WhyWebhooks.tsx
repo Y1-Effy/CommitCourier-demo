@@ -159,7 +159,7 @@ const en: WhyCopy = {
   ),
   dualKey: (
     <>
-      The same names are used on the <a href="#/">home page</a>: <b>lost webhook</b> (committed but
+      The same names are used on the <a href="/">home page</a>: <b>lost webhook</b> (committed but
       never enqueued) and <b>phantom webhook</b> (enqueued but rolled back).
     </>
   ),
@@ -310,8 +310,8 @@ const en: WhyCopy = {
   ],
   deliveryRef: (
     <>
-      The full capability list lives on the <a href="#/">home page</a>; runnable code for each is on{" "}
-      <a href="#/integrate">Integrate</a>.
+      The full capability list lives on the <a href="/">home page</a>; runnable code for each is on{" "}
+      <a href="/integrate">Integrate</a>.
     </>
   ),
 
@@ -350,7 +350,7 @@ const en: WhyCopy = {
       Keep your webhook service as is, and use CommitCourier to close the handoff gap between the
       business transaction and the delivery layer. An experimental <code>sink</code> transport can
       even hand delivery off to that SaaS from the transactional outbox — so the handoff itself
-      becomes reliable (<a href="#/faq">see the FAQ</a>).
+      becomes reliable (<a href="/faq">see the FAQ</a>).
     </>
   ),
   comboFor: [
@@ -374,7 +374,7 @@ const en: WhyCopy = {
   scopeNote: (
     <>
       The full responsibility boundary — what CommitCourier owns versus what you still own — is laid
-      out on <a href="#/safe-adoption">Built for safe adoption →</a>.
+      out on <a href="/safe-adoption">Built for safe adoption →</a>.
     </>
   ),
 
@@ -454,7 +454,7 @@ const ja: WhyCopy = {
   ),
   dualKey: (
     <>
-      <a href="#/">トップページ</a>と同じ呼び方を使っています: <b>消えた Webhook</b>（commit したが
+      <a href="/">トップページ</a>と同じ呼び方を使っています: <b>消えた Webhook</b>（commit したが
       enqueue されない）と <b>幻の Webhook</b>（enqueue したが rollback された）。
     </>
   ),
@@ -597,8 +597,8 @@ const ja: WhyCopy = {
   ],
   deliveryRef: (
     <>
-      機能の全体は<a href="#/">トップページ</a>に、それぞれの動くコードは
-      <a href="#/integrate">組み込み方</a>にあります。
+      機能の全体は<a href="/">トップページ</a>に、それぞれの動くコードは
+      <a href="/integrate">組み込み方</a>にあります。
     </>
   ),
 
@@ -632,7 +632,7 @@ const ja: WhyCopy = {
       既存の Webhook サービスはそのまま利用し、業務トランザクションから配信基盤へ渡すまでの handoff
       gap を CommitCourier でふさげます。実験的な <code>sink</code> トランスポートを使えば、
       トランザクショナルなアウトボックスから SaaS へ配信をハンドオフでき、ハンドオフ自体が信頼できる
-      経路になります（<a href="#/faq">FAQ 参照</a>）。
+      経路になります（<a href="/faq">FAQ 参照</a>）。
     </>
   ),
   comboFor: [
@@ -656,7 +656,7 @@ const ja: WhyCopy = {
   scopeNote: (
     <>
       責任境界の全体 — CommitCourier が持つ範囲と利用側が持つ範囲 — は
-      <a href="#/safe-adoption">安心して試すための設計 →</a>にまとめてあります。
+      <a href="/safe-adoption">安心して試すための設計 →</a>にまとめてあります。
     </>
   ),
 
@@ -685,9 +685,7 @@ export function WhyWebhooks() {
     <div className="container">
       {/* 導入 + ページ内ナビ */}
       <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 32 }}>
-        {t.heading}
-      </h2>
+      <h1 className="page-title">{t.heading}</h1>
       <p className="sub">{t.intro}</p>
       <PageNav navLabel={t.navLabel} parts={parts} />
 
@@ -879,10 +877,10 @@ export function WhyWebhooks() {
         <h2 className="section">{t.ctaTitle}</h2>
         <p className="sub">{t.ctaSub}</p>
         <div className="cta">
-          <a className="btn primary" href="#/demo">
+          <a className="btn primary" href="/demo">
             {t.ctaDemo}
           </a>
-          <a className="btn" href="#/integrate">
+          <a className="btn" href="/integrate">
             {t.ctaIntegrate}
           </a>
         </div>

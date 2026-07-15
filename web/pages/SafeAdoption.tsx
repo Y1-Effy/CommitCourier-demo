@@ -837,18 +837,16 @@ export function SafeAdoption() {
     <div className="container">
       {/* ヒーロー */}
       <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 32 }}>
-        {t.title}
-      </h2>
+      <h1 className="page-title">{t.title}</h1>
       <p className="sub" style={{ fontSize: 18, fontWeight: 600, color: "var(--text)" }}>
         {t.tagline}
       </p>
       <p className="sub">{t.lead}</p>
       <div className="cta" style={{ justifyContent: "flex-start", marginTop: 6 }}>
-        <a className="btn primary" href="#/integrate">
+        <a className="btn primary" href="/integrate">
           {t.ctaPrimary}
         </a>
-        <a className="btn" href="#/demo">
+        <a className="btn" href="/demo">
           {t.ctaDemo}
         </a>
       </div>
@@ -1009,7 +1007,7 @@ export function SafeAdoption() {
         {t.s7Copy}
       </div>
       <div className="cta" style={{ justifyContent: "flex-start", marginTop: 14 }}>
-        <a className="btn ghost" href="#/demo">
+        <a className="btn ghost" href="/demo">
           {t.bDemo} →
         </a>
       </div>
@@ -1106,13 +1104,13 @@ export function SafeAdoption() {
         <h2 className="section">{t.ctaTitle}</h2>
         <p className="sub">{t.ctaSub}</p>
         <div className="cta">
-          <a className="btn primary" href="#/integrate">
+          <a className="btn primary" href="/integrate">
             {t.ctaPrimary}
           </a>
-          <a className="btn" href="#/demo">
+          <a className="btn" href="/demo">
             {t.ctaDemo}
           </a>
-          <a className="btn ghost" href="#/why">
+          <a className="btn ghost" href="/why">
             {t.bWhy}
           </a>
         </div>

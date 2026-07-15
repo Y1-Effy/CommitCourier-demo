@@ -41,7 +41,7 @@ const relay = await createRelay({
 // enqueue still rides your business TX; the dispatcher forwards each event to Svix,
 // and your idempotencyKey maps onto Svix's dedup key.`;
 
-interface QA {
+export interface QA {
   q: string;
   a: ReactNode;
 }
@@ -82,7 +82,7 @@ const en: FaqCopy = {
         <>
           Dedup on the receiver. Every delivery carries a stable <code>webhook-id</code> (and your
           optional <code>idempotency-key</code>); record it and ignore repeats. The{" "}
-          <a href="#/demo">live demo</a> shows the self-receiver doing exactly this.
+          <a href="/demo">live demo</a> shows the self-receiver doing exactly this.
         </>
       ),
     },
@@ -190,6 +190,13 @@ const en: FaqCopy = {
   ),
 };
 
+/**
+ * The English Q&A pairs, for the FAQPage JSON-LD that scripts/prerender.mjs bakes into faq.html.
+ * Exported rather than duplicated as plain strings so the structured data cannot drift from the copy
+ * a visitor actually reads — see web/seo/jsonld.tsx.
+ */
+export const FAQ_ITEMS_EN: readonly QA[] = en.items;
+
 const ja: FaqCopy = {
   eyebrow: "FAQ",
   heading: "慎重なエンジニアが訊くこと",
@@ -217,7 +224,7 @@ const ja: FaqCopy = {
         <>
           受信側で重複排除します。各配信は安定した <code>webhook-id</code>（と任意の{" "}
           <code>idempotency-key</code>）を持つので、それを記録して再送を無視します。
-          <a href="#/demo">ライブデモ</a>では自前 receiver がまさにこれを行います。
+          <a href="/demo">ライブデモ</a>では自前 receiver がまさにこれを行います。
         </>
       ),
     },
@@ -334,17 +341,15 @@ export function Faq() {
   return (
     <div className="container">
       <div className="eyebrow">{t.eyebrow}</div>
-      <h2 className="section" style={{ fontSize: 32 }}>
-        {t.heading}
-      </h2>
+      <h1 className="page-title">{t.heading}</h1>
       <p className="sub">{t.intro}</p>
 
       <div className="grid" style={{ gap: 14, marginTop: 8 }}>
         {t.items.map((item) => (
           <div className="card" key={item.q}>
-            <h2 className="section" style={{ margin: "0 0 8px", fontSize: 18 }}>
-              {item.q}
-            </h2>
+            {/* Each Q&A is a top-level section of this page, so h2 — which also mirrors the
+                FAQPage structured data built from these same items. */}
+            <h2 className="card-title">{item.q}</h2>
             <div className="muted">{item.a}</div>
           </div>
         ))}

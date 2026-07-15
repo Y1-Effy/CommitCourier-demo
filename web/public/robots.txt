@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /receiver
 
 Sitemap: https://commitcourier-demo.xvps.jp/sitemap.xml
