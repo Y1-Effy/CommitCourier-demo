@@ -2,6 +2,7 @@
   "name": "commitcourier-demo",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Live demo & integration showcase for CommitCourier (transactional outbound webhooks).",
   "type": "module",
   "engines": {
