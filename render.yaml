@@ -1,12 +1,19 @@
 # Render Blueprint — one-click deploy of the live demo (web service + managed Postgres).
 # Deploy: https://render.com/deploy?repo=https://github.com/Y1-Effy/commitcourier-demo
-# (replace the repo URL above and in README with your fork once it has a public GitHub remote)
+# (fork it? replace the repo URL above and in both READMEs with your own)
+#
+# This is a secondary path — the live demo actually ships to a VPS via
+# .github/workflows/deploy.yml. Nothing here is exercised by CI, so it can rot unnoticed.
 services:
   - type: web
     name: commitcourier-demo
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    # --include=dev is required, not cosmetic: NODE_ENV=production below is exported into the build
+    # environment too, and npm then defaults to omit=dev — so a plain `npm install` would skip vite
+    # and react-dom and the build would die on the first phase. CI never catches this because it
+    # uses `npm ci` with NODE_ENV unset.
+    buildCommand: npm install --include=dev && npm run build
     # migrate is idempotent; runs on every boot so the schema is always present.
     startCommand: npm run migrate && npm start
     healthCheckPath: /api/stats
