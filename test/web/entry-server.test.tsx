@@ -66,9 +66,12 @@ describe("JSON-LD", () => {
     for (const entry of data.mainEntity) {
       expect(entry.name.length).toBeGreaterThan(0);
       expect(entry.acceptedAnswer.text.length).toBeGreaterThan(0);
-      // Proves the stripPre + htmlToText pipeline: no markup, no code samples, no raw entities.
+      // Proves the stripChrome + htmlToText pipeline: no markup, no code samples, no raw entities.
       expect(entry.acceptedAnswer.text).not.toContain("<");
       expect(entry.acceptedAnswer.text).not.toContain("&amp;");
+      // CodeBlock renders its copy button as a SIBLING of the <pre>, so stripping only the <pre>
+      // left "Copy" glued to the end of four answers and shipped it to Google. Pin that shut.
+      expect(entry.acceptedAnswer.text).not.toContain("Copy");
     }
   });
 

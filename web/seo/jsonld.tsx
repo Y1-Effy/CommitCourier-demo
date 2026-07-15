@@ -17,9 +17,18 @@ import { canonicalFor } from "../seo";
 import { SEO } from "../seo";
 import type { RouteId } from "../routes";
 
-/** Drop code samples: a 6-line snippet inside acceptedAnswer.text is noise for every consumer. */
-function stripPre(html: string): string {
-  return html.replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/g, " ");
+/**
+ * Drop the parts of an answer that are UI, not prose.
+ *
+ * <pre> because a 6-line snippet inside acceptedAnswer.text is noise for every consumer. <button>
+ * because CodeBlock renders its copy button as a SIBLING of the <pre>, not inside it — strip only
+ * the <pre> and the word "Copy" survives into the structured data. Neither element nests, so a
+ * regex is safe here; matching the enclosing div.code wrapper instead would break on a nested div.
+ */
+function stripChrome(html: string): string {
+  return html
+    .replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/g, " ")
+    .replace(/<button\b[^>]*>[\s\S]*?<\/button>/g, " ");
 }
 
 /** The entities renderToStaticMarkup emits. Ampersand last, so decoded text isn't re-decoded. */
@@ -35,7 +44,7 @@ function decode(text: string): string {
 }
 
 function htmlToText(html: string): string {
-  return decode(stripPre(html).replace(/<[^>]+>/g, ""))
+  return decode(stripChrome(html).replace(/<[^>]+>/g, ""))
     .replace(/\s+/g, " ")
     .trim();
 }
