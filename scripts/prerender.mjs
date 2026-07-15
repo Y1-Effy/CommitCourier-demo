@@ -68,7 +68,15 @@ function buildPage(template, { html, head, jsonLd }) {
     ? // Escaping "</" makes a </script> breakout impossible regardless of the payload.
       `<script type="application/ld+json">${jsonLd.replace(/<\//g, "<\\/")}</script>`
     : "";
-  return withSeo.replace(JSONLD_MARKER, script).replace(ROOT_DIV, `<div id="root">${html}</div>`);
+  // Replacer FUNCTIONS, not strings: in a replacement string `$&`, "$`", `$'` and `$$` are special,
+  // and both payloads are arbitrary rendered content. React escapes `<` to `&lt;`, so source text
+  // like Postgres's `$1`/`$$` or a `$<` becomes `$&lt;` — which contains `$&` and would splice the
+  // matched text into the output. A function replacement disables that interpretation entirely.
+  // web/dist/integrate.html already ships a live `$<span class="tok-num">1</span` from a `VALUES ($1)`
+  // sample; it survives only because string patterns disable named-capture substitution.
+  return withSeo
+    .replace(JSONLD_MARKER, () => script)
+    .replace(ROOT_DIV, () => `<div id="root">${html}</div>`);
 }
 
 function sitemap(lastmod) {
