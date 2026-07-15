@@ -72,7 +72,7 @@ async function main() {
 
   const app = express();
   app.disable("x-powered-by");
-  // Behind a single reverse proxy in production (Render). Without this, `req.ip` is the proxy's IP, so
+  // Behind a single reverse proxy in production (nginx on the VPS). Without this, `req.ip` is the proxy's IP, so
   // the write rate-limiter would key every visitor into one shared bucket (and express-rate-limit v7
   // logs an X-Forwarded-For validation error). One hop = trust the first proxy only.
   app.set("trust proxy", 1);

@@ -1,5 +1,5 @@
 /**
- * A tiny, dependency-free i18n layer — in the same spirit as the rest of this repo (custom hash
+ * A tiny, dependency-free i18n layer — in the same spirit as the rest of this repo (custom History
  * router, custom highlighter, custom SSE hooks). Copy lives in per-page dictionaries whose values
  * can be plain strings, JSX nodes (so rich text with <b>/<a>/<code> needs no string-splitting), or
  * functions (for interpolated text). `Record<Locale, typeof en>` makes the compiler reject any
