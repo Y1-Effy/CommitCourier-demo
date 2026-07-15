@@ -2,7 +2,11 @@
 // the vertical flow diagram, the part divider, and the in-page jump nav. Kept here so the
 // two pages share one implementation instead of each carrying its own copy.
 
-/** Smooth-scroll to a part/section anchor without touching the hash router (`#/...` stays put). */
+/**
+ * Smooth-scroll to a part/section anchor. The callers are <button>s rather than <a href="#id"> so
+ * that jumping between sections leaves the URL alone — an anchor would push a fragment onto it.
+ * (The router's click interceptor declines href="#..." anyway; this is about the URL, not routing.)
+ */
 function jump(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
