@@ -37,14 +37,21 @@ function click(el: Element, init: MouseEventInit = {}): boolean {
   return event.defaultPrevented;
 }
 
+const scrollIntoView = vi.fn();
+
 beforeEach(() => {
   // jsdom implements neither scrollTo nor real navigation; without this it logs "Not implemented".
   vi.stubGlobal("scrollTo", vi.fn());
+  // jsdom does no layout, so scrollIntoView isn't merely unimplemented — it's absent, and there is
+  // nothing for vi.spyOn to wrap. Install it, and put the prototype back in afterEach.
+  Element.prototype.scrollIntoView = scrollIntoView;
+  scrollIntoView.mockClear();
   window.history.replaceState(null, "", "/");
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  Reflect.deleteProperty(Element.prototype, "scrollIntoView");
 });
 
 describe("RouterProvider — client-side navigation", () => {
@@ -92,6 +99,83 @@ describe("RouterProvider — client-side navigation", () => {
   it("ignores a repeat click on the current path", () => {
     renderAt("/why", <a href="/why">Why</a>);
     click(screen.getByText("Why"));
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Deep links like /faq#ordering are what let a claim on Landing link straight to the answer that
+ * qualifies it, so the fragment has to survive the click interceptor, the pushState and the render
+ * of the incoming page. It previously did not: the router returned `url.pathname` and dropped it.
+ */
+describe("RouterProvider — fragment targets", () => {
+  it("keeps the fragment in the URL and scrolls to it across routes", () => {
+    renderAt(
+      "/",
+      <>
+        <a href="/faq#ordering">Ordering</a>
+        <div id="ordering">Are events ordered?</div>
+      </>,
+    );
+
+    expect(click(screen.getByText("Ordering"))).toBe(true);
+
+    expect(window.location.pathname).toBe("/faq");
+    expect(window.location.hash).toBe("#ordering");
+    expect(scrollIntoView).toHaveBeenCalled();
+    // The fragment drives scrolling only; routing still matches on the pathname alone.
+    expect(screen.getByTestId("path").textContent).toBe("/faq");
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls when the fragment link points at the route already open", () => {
+    // The old `to === location.pathname` guard swallowed this one whole: same path, so it returned
+    // before the fragment could do anything.
+    renderAt(
+      "/faq",
+      <>
+        <a href="/faq#dedup">Dedup</a>
+        <div id="dedup">Then how do I get exactly-once effects?</div>
+      </>,
+    );
+
+    expect(click(screen.getByText("Dedup"))).toBe(true);
+    expect(window.location.hash).toBe("#dedup");
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("falls back to the top when the fragment matches no element", () => {
+    // A stale anchor should look like an ordinary navigation, not like a dead link.
+    renderAt("/", <a href="/faq#gone">Gone</a>);
+
+    click(screen.getByText("Gone"));
+
+    expect(window.location.pathname).toBe("/faq");
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0 });
+  });
+
+  it("re-applies the fragment on a cold load", () => {
+    // The browser jumps while parsing the prerendered HTML, but createRoot then discards that markup
+    // and rebuilds it, losing the position. Without the mount effect this silently regresses.
+    window.history.replaceState(null, "", "/faq#poll-latency");
+
+    render(
+      <RouterProvider initialPath="/faq">
+        <div id="poll-latency">Isn't a ~1s polling loop too slow?</div>
+      </RouterProvider>,
+    );
+
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("does not scroll on a cold load without a fragment", () => {
+    render(
+      <RouterProvider initialPath="/faq">
+        <div id="ordering">Are events ordered?</div>
+      </RouterProvider>,
+    );
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
     expect(window.scrollTo).not.toHaveBeenCalled();
   });
 });
