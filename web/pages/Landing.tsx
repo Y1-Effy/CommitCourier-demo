@@ -1,5 +1,6 @@
 import { CodeBlock } from "../components/CodeBlock";
 import { useCopy, type Locale } from "../i18n";
+import { ISSUES } from "../lib/links";
 import type { ReactNode } from "react";
 
 const QUICKSTART = `import { Pool } from "pg";
@@ -16,14 +17,26 @@ await relay.enqueue(trx, {
   endpoint: { url: "https://customer.example.com/webhooks", secret },
 });`;
 
-// Symbol matrix for the comparison table (language-independent). The capability labels (first
-// column) come from the copy dictionary, aligned by index.
-const COMPARE_CELLS: [string, string, string][] = [
-  ["✗", "✗", "✓"],
-  ["✓", "✓", "✓"],
-  ["✓", "partial", "✓"],
-  ["✓", "—", "✓"],
-  ["✗ (SaaS)", "✗ (Redis)", "✓"],
+/**
+ * The alternatives a reader is actually choosing between. Svix and BullMQ alone invited the fair
+ * charge of picking convenient opponents: the real contenders are a hand-rolled outbox driven by a
+ * Postgres job queue, and Postel — an embedded library making a near-identical claim. Both are here
+ * on purpose, and the last row is one CommitCourier does not win.
+ *
+ * Cells state each project's own public documentation, never an inference; "—" is not-offered or
+ * not-documented, and COMPARE_NOTE tells the reader which and how to correct it. A wrong ✗ against a
+ * competitor would cost more trust than the whole table buys.
+ */
+const COMPARE_COLUMNS = ["SaaS (Svix)", "Queue (BullMQ)", "DIY outbox + pg-boss", "Postel"];
+
+// Language-independent; capability labels (first column) come from the copy dictionary, by index.
+const COMPARE_CELLS: [string, string, string, string, string][] = [
+  ["✗", "✗", "✓", "✓", "✓"],
+  ["✓", "DIY", "DIY", "✓", "✓"],
+  ["✓", "partial", "DIY", "✓", "✓"],
+  ["✓", "—", "DIY", "—", "✓"],
+  ["✗ (SaaS)", "✗ (Redis)", "✓", "✓", "✓"],
+  ["Production SaaS", "Mature", "Your code", "Pre-alpha", "0.x (pre-1.0)"],
 ];
 
 interface LandingCopy {
@@ -44,8 +57,16 @@ interface LandingCopy {
   quickstartEyebrow: string;
   compareHeading: string;
   capabilityHeader: string;
-  compareLabels: [string, string, string, string, string];
-  features: [string, string][];
+  compareLabels: [string, string, string, string, string, string];
+  compareNote: ReactNode;
+  // ReactNode, not string: each card links the exact term that provokes the doubt to its answer.
+  features: [string, ReactNode][];
+  /**
+   * The dogfooding claim, hoisted to directly under the hero. For an unknown 0.x library the scarce
+   * thing is credibility, and this is the one line that buys it — it earns the fold. The card at the
+   * foot of the page is the payoff (evidence + CTA), deliberately not a restatement.
+   */
+  realStrip: ReactNode;
   realHeading: string;
   realSub: ReactNode;
   realCta: string;
@@ -116,10 +137,28 @@ const en: LandingCopy = {
     "Signing · retries · DLQ · ledger",
     "SSRF protection",
     "No extra infra (just Postgres)",
+    "Maturity (self-declared)",
   ],
+  compareNote: (
+    <>
+      “DIY” means the capability is yours to write and maintain. “—” means not offered, or not
+      documented. Cells state each project's own public docs as of July 2026 — if we've got yours
+      wrong, <a href={ISSUES}>tell us and we'll fix it</a>. Ordering and delivery guarantees don't
+      compress into a ✓, so they get <a href="/faq#ordering">straight answers on the FAQ</a>{" "}
+      instead.
+    </>
+  ),
   features: [
     ["Atomic enqueue", "Rides your DB transaction (fail-closed)."],
-    ["Background delivery", "Polling dispatcher, fail-open, single-delivery across instances."],
+    [
+      "Background delivery",
+      <>
+        <a href="/faq#poll-latency">Polling dispatcher</a>, fail-open. <code>SKIP LOCKED</code>{" "}
+        gives one claim per row across instances — the delivery itself is still{" "}
+        <a href="/faq#exactly-once">at-least-once</a>, so dedup on the stable{" "}
+        <code>webhook-id</code>.
+      </>,
+    ],
     ["Standard Webhooks", "HMAC-SHA256 signing receivers verify with off-the-shelf tools."],
     [
       "Retries + DLQ",
@@ -128,12 +167,18 @@ const en: LandingCopy = {
     ["Delivery ledger", "Every attempt recorded: status, latency, response snippet."],
     ["SSRF protection", "Private / loopback / cloud-metadata ranges blocked by default."],
   ],
-  realHeading: "Everything on this page is real.",
+  realStrip: (
+    <>
+      <b>Everything on this page is real.</b> Nothing here is mocked — this site is a CommitCourier
+      consumer, installed from npm, delivering to its own receiver as you read this.
+    </>
+  ),
+  realHeading: "Don't take our word for it.",
   realSub: (
     <>
-      Nothing here is mocked — the site itself is a CommitCourier consumer, installed from npm.
-      Drive it yourself on the <a href="/demo">live demo</a>, or read its cumulative counters on the{" "}
-      <a href="/stats">track record</a>.
+      Every counter on the <a href="/stats">track record</a> was produced by this site's own
+      dispatcher and survives restarts. The <a href="/demo">live demo</a> drives the same relay
+      you'd install — including the retries and the DLQ.
     </>
   ),
   realCta: "Open the live demo",
@@ -207,24 +252,45 @@ const ja: LandingCopy = {
     "署名・リトライ・DLQ・台帳",
     "SSRF 保護",
     "追加インフラ不要 (Postgres だけ)",
+    "成熟度 (自己申告)",
   ],
+  compareNote: (
+    <>
+      「DIY」はその機能を自分で書いて保守するという意味。「—」は非提供、またはドキュメントに
+      記載なし。各セルは 2026年7月時点の各プロジェクトの公開ドキュメントに基づきます —
+      記載に誤りがあれば <a href={ISSUES}>Issue でお知らせください（直します）</a>。
+      順序と配信保証は ✓ に圧縮できないので、
+      <a href="/faq#ordering">FAQ で正面から答えています</a>。
+    </>
+  ),
   features: [
     ["アトミックな enqueue", "DB トランザクションに相乗り (fail-closed)。"],
     [
       "バックグラウンド配信",
-      "ポーリング型 dispatcher、fail-open、複数インスタンス間でも単一配信。",
+      <>
+        <a href="/faq#poll-latency">ポーリング型 dispatcher</a>、fail-open。
+        <code>SKIP LOCKED</code> により行の claim は複数インスタンス間で排他ですが、配信自体は{" "}
+        <a href="/faq#exactly-once">at-least-once</a> です。安定した <code>webhook-id</code>{" "}
+        で受信側で重複排除してください。
+      </>,
     ],
     ["Standard Webhooks", "HMAC-SHA256 署名。受信側は既製ツールで検証できます。"],
     ["リトライ + DLQ", "ジッタ付き指数バックオフ。試行を使い切った行は dead-letter queue へ。"],
     ["配信台帳", "全試行を記録: ステータス・レイテンシ・レスポンス断片。"],
     ["SSRF 保護", "プライベート / ループバック / クラウドメタデータの範囲を既定でブロック。"],
   ],
-  realHeading: "このページの内容はすべて本物です。",
+  realStrip: (
+    <>
+      <b>このページの内容はすべて本物です。</b> モックはありません — このサイト自体が、npm で入れた
+      CommitCourier の利用側アプリで、いま読んでいる間も自分の receiver へ配信しています。
+    </>
+  ),
+  realHeading: "言葉を信じる必要はありません。",
   realSub: (
     <>
-      ここにモックはありません — このサイト自体が、npm で入れた CommitCourier の利用側アプリです。
-      <a href="/demo">ライブデモ</a>で自分で動かすか、<a href="/stats">稼働実績</a>
-      で累積カウンタを確認できます。
+      <a href="/stats">稼働実績</a>のカウンタは、すべてこのサイト自身の dispatcher
+      が生んだ数字で、再起動しても残ります。<a href="/demo">ライブデモ</a>
+      が動かしているのは、あなたが install するのと同じ relay です — リトライも DLQ も含めて。
     </>
   ),
   realCta: "ライブデモを開く",
@@ -234,26 +300,40 @@ const copy: Record<Locale, LandingCopy> = { en, ja };
 
 function Compare({ t }: { t: LandingCopy }) {
   return (
-    <table className="tbl">
-      <thead>
-        <tr>
-          <th>{t.capabilityHeader}</th>
-          <th>SaaS (Svix)</th>
-          <th>Queue (BullMQ)</th>
-          <th style={{ color: "var(--accent)" }}>CommitCourier</th>
-        </tr>
-      </thead>
-      <tbody>
-        {COMPARE_CELLS.map((cells, i) => (
-          <tr key={t.compareLabels[i]}>
-            <td style={{ fontFamily: "var(--sans)" }}>{t.compareLabels[i]}</td>
-            <td>{cells[0]}</td>
-            <td>{cells[1]}</td>
-            <td style={{ color: "var(--green)" }}>{cells[2]}</td>
+    // Six columns overflow a phone; the scroller keeps that inside the table instead of letting the
+    // page body scroll sideways.
+    <div className="tbl-scroll">
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>{t.capabilityHeader}</th>
+            {COMPARE_COLUMNS.map((name) => (
+              <th key={name}>{name}</th>
+            ))}
+            <th style={{ color: "var(--accent)" }}>CommitCourier</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {COMPARE_CELLS.map((cells, i) => (
+            <tr key={t.compareLabels[i]}>
+              <td style={{ fontFamily: "var(--sans)" }}>{t.compareLabels[i]}</td>
+              {cells.map((cell, j) => (
+                // Green reads as "we win", so only a ✓ earns it — the maturity row says 0.x and must
+                // render as plainly as every other column's answer.
+                <td
+                  key={j}
+                  style={
+                    j === cells.length - 1 && cell === "✓" ? { color: "var(--green)" } : undefined
+                  }
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -308,6 +388,10 @@ export function Landing() {
       </div>
 
       <div className="container">
+        <div className="callout" style={{ marginBottom: 20 }}>
+          {t.realStrip}
+        </div>
+
         <div className="grid cols-2">
           <div className="card">
             <div className="eyebrow">{t.bugEyebrow}</div>
@@ -338,6 +422,9 @@ export function Landing() {
         <h2 className="section">{t.compareHeading}</h2>
         <div className="card">
           <Compare t={t} />
+          <p className="muted" style={{ margin: "12px 0 0", fontSize: 12 }}>
+            {t.compareNote}
+          </p>
         </div>
 
         <div style={{ height: 36 }} />

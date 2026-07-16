@@ -6,6 +6,7 @@
 // the node environment is what makes this a real SSR regression detector.
 import { describe, it, expect } from "vitest";
 import { renderRoute, renderNotFound } from "../../web/entry-server";
+import { FAQ_IDS } from "../../web/pages/Faq";
 import { ROUTES } from "../../web/routes";
 import { SEO } from "../../web/seo";
 
@@ -62,7 +63,9 @@ describe("JSON-LD", () => {
     const { jsonLd } = renderRoute("/faq");
     const data = JSON.parse(jsonLd!);
     expect(data["@type"]).toBe("FAQPage");
-    expect(data.mainEntity).toHaveLength(9);
+    // Derived, not a literal: the count is incidental to what this test is actually pinning (the
+    // htmlToText pipeline below), so adding a Q&A shouldn't fail it here.
+    expect(data.mainEntity).toHaveLength(FAQ_IDS.length);
     for (const entry of data.mainEntity) {
       expect(entry.name.length).toBeGreaterThan(0);
       expect(entry.acceptedAnswer.text.length).toBeGreaterThan(0);

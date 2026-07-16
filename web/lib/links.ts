@@ -9,6 +9,13 @@
 /** ライブラリ本体の GitHub リポジトリ。 */
 export const REPO = "https://github.com/Y1-Effy/CommitCourier";
 
+/**
+ * Postel — ほぼ同一の主張（トランザクショナル outbox・Redis 不要・Standard Webhooks）を持つ
+ * 埋め込み型ライブラリ。CommitCourier 本体の README も名指しで言及しており、
+ * 比較表と FAQ の両方から参照するのでここに置く。競合だが実在の宛先。
+ */
+export const POSTEL = "https://postel.sh";
+
 /** npm 上の commitcourier パッケージ。 */
 export const NPM = "https://www.npmjs.com/package/commitcourier";
 

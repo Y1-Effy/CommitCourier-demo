@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CodeBlock } from "../components/CodeBlock";
 import { useCopy, type Locale } from "../i18n";
+import { POSTEL } from "../lib/links";
 
 const CRON = `// Serverless / no long-lived process? Skip the dispatcher loop and
 // drain a batch from a scheduled function (cron, Lambda, Cloud Run job):
@@ -41,7 +42,32 @@ const relay = await createRelay({
 // enqueue still rides your business TX; the dispatcher forwards each event to Svix,
 // and your idempotencyKey maps onto Svix's dedup key.`;
 
+/**
+ * Anchor ids for the Q&A cards, so pages can deep-link the answer to the doubt they provoke (see the
+ * feature cards and the comparison note on Landing).
+ *
+ * Locale-independent by construction: the id is the one part of an item that must NOT be translated,
+ * because a link written once has to land in both locales. The union makes a typo a `tsc` error;
+ * en/ja carrying the *same* ids in the same order is what test/web/pages/Faq.test.tsx checks against
+ * this list, since no type can enforce that across two array literals.
+ */
+export const FAQ_IDS = [
+  "exactly-once",
+  "dedup",
+  "ordering",
+  "serverless",
+  "poll-latency",
+  "scale",
+  "endpoints",
+  "svix-sink",
+  "vs-postel",
+  "secrets-at-rest",
+] as const;
+
+export type FaqId = (typeof FAQ_IDS)[number];
+
 export interface QA {
+  id: FaqId;
   q: string;
   a: ReactNode;
 }
@@ -66,37 +92,52 @@ const en: FaqCopy = {
   ),
   items: [
     {
+      id: "exactly-once",
       q: "Is delivery exactly-once?",
       a: (
         <>
-          No — it's <b>at-least-once</b>. A crash after a successful HTTP send but before the status
-          commit causes one redelivery once the visibility-timeout reclaim fires. The dual-write
-          guarantee (no phantom / lost webhooks) is exact; the <i>network delivery</i> is
-          at-least-once, like every honest webhook system.
+          No — it's <b>at-least-once</b>. <code>FOR UPDATE SKIP LOCKED</code> means two dispatchers
+          never claim the same row at once, but that's a claim guarantee, not a delivery count: a
+          crash after a successful HTTP send but before the status commit causes one redelivery once
+          the visibility-timeout reclaim fires. The dual-write guarantee (no phantom / lost
+          webhooks) is exact; the <i>network delivery</i> is at-least-once, like every honest
+          webhook system.
         </>
       ),
     },
     {
+      id: "dedup",
       q: "Then how do I get exactly-once effects?",
       a: (
         <>
           Dedup on the receiver. Every delivery carries a stable <code>webhook-id</code> (and your
-          optional <code>idempotency-key</code>); record it and ignore repeats. The{" "}
-          <a href="/demo">live demo</a> shows the self-receiver doing exactly this.
+          optional <code>idempotency-key</code>); record it and ignore repeats. The id is the outbox
+          row's own id, so it survives every retry <i>and</i> the crash-redelivery above — which is
+          what makes at-least-once workable rather than merely honest. One exception worth knowing:{" "}
+          <code>relay.replay()</code> re-enqueues as new rows with new ids, so a replayed event is
+          deliberately not deduped by <code>webhook-id</code>. The <a href="/demo">live demo</a>{" "}
+          shows the self-receiver doing exactly this.
         </>
       ),
     },
     {
+      id: "ordering",
       q: "Are events ordered?",
       a: (
         <>
-          Not by default — deliveries are independent. Per-endpoint FIFO is opt-in via{" "}
-          <code>createDispatcher(&#123; ordering: "per-endpoint" &#125;)</code>. If you need strict
-          global ordering across an endpoint, design for it explicitly.
+          <b>No, not by default</b> — the dispatcher claims a batch oldest-first and then delivers
+          it concurrently, so deliveries race and can land out of order. Per-endpoint FIFO is opt-in
+          via <code>createDispatcher(&#123; ordering: "per-endpoint" &#125;)</code>, with one catch
+          that matters: it only serialises <b>registered</b> endpoints. If you enqueue with an
+          inline <code>endpoint: &#123; url, secret &#125;</code> — the quick path shown in most of
+          these examples, and what this demo itself uses — opting in changes nothing. Register the
+          endpoint first (see <a href="#endpoints">targeting endpoints by id</a>), then opt in. For
+          strict global ordering across an endpoint, design for it explicitly.
         </>
       ),
     },
     {
+      id: "serverless",
       q: "I run serverless — no long-lived process. Can I still use it?",
       a: (
         <>
@@ -109,14 +150,19 @@ const en: FaqCopy = {
       ),
     },
     {
+      id: "poll-latency",
       q: "Isn't a ~1s polling loop too slow?",
       a: (
         <>
-          By default a dispatcher wakes on a ~1s poll. When you need lower latency, wire the
-          optional <code>commitcourier/accelerator/pg</code> accelerator: a transactional{" "}
-          <code>pg_notify</code> on COMMIT wakes a listening dispatcher at once via Postgres
-          LISTEN/NOTIFY, so delivery starts without waiting for the next poll. It's best-effort — a
-          missed wake only falls back to polling, never drops the row.
+          <code>pollIntervalMs</code> (default 1000) is a <i>ceiling</i>, not a tick. The idle sleep
+          starts at ~50ms and only doubles toward the ceiling while the queue stays empty, resetting
+          the moment a row is found — so a backlog drains at roughly 50ms per pass, and the full
+          second is what you pay on an idle queue. When you want the first delivery not to wait for
+          a poll at all, wire the optional <code>commitcourier/accelerator/pg</code> accelerator: a
+          transactional <code>pg_notify</code> on COMMIT wakes a listening dispatcher at once via
+          Postgres LISTEN/NOTIFY. It's best-effort — a missed wake only falls back to polling, never
+          drops the row. (This site doesn't wire it: a demo is better served by showing the honest
+          default.)
           <div style={{ marginTop: 10 }}>
             <CodeBlock code={ACCEL} />
           </div>
@@ -124,6 +170,7 @@ const en: FaqCopy = {
       ),
     },
     {
+      id: "scale",
       q: "Does it scale? Can I run multiple dispatchers?",
       a: (
         <>
@@ -134,6 +181,7 @@ const en: FaqCopy = {
       ),
     },
     {
+      id: "endpoints",
       q: "Do I have to inline the URL and secret on every enqueue?",
       a: (
         <>
@@ -149,6 +197,7 @@ const en: FaqCopy = {
       ),
     },
     {
+      id: "svix-sink",
       q: "I already use Svix / a webhook SaaS — can CommitCourier feed it instead of sending HTTP itself?",
       a: (
         <>
@@ -166,6 +215,34 @@ const en: FaqCopy = {
       ),
     },
     {
+      id: "vs-postel",
+      q: "Isn't this the same pitch as Postel?",
+      a: (
+        <>
+          Largely, yes — and it's the comparison worth making, so here it is unprompted.{" "}
+          <a href={POSTEL}>Postel</a> is an embedded library with a near-identical claim:
+          transactional outbox, signing, retries, dead-letter, replay, no Redis and no broker. We
+          aren't going to pretend it doesn't exist.
+          <div style={{ marginTop: 10 }}>
+            It casts wider than we do. It reaches beyond Postgres to SQLite, it does inbound webhook{" "}
+            <i>receiving</i> and not just sending, it signs with Ed25519 and publishes JWKS where
+            CommitCourier is HMAC-SHA256 only, and it has a polyglot roadmap while we are Node and
+            nothing else. If you need any of those, use it — that's not a hedge.
+          </div>
+          <div style={{ marginTop: 10 }}>
+            CommitCourier trades that reach for depth on one database: SSRF protection on by
+            default, at-rest secret encryption, an endpoint circuit breaker, OpenTelemetry, the
+            LISTEN/NOTIFY accelerator, <code>pg</code> / Knex / Drizzle / Prisma adapters, a{" "}
+            <code>doctor</code> CLI, DLQ inspection and replay, and the{" "}
+            <a href="#svix-sink">sink handoff</a> to a SaaS. On maturity neither of us should be
+            oversold: Postel calls itself pre-alpha, we're <code>0.x</code> and a minor can still
+            break you.
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "secrets-at-rest",
       q: "How are signing secrets protected at rest?",
       a: (
         <>
@@ -208,10 +285,13 @@ const ja: FaqCopy = {
   ),
   items: [
     {
+      id: "exactly-once",
       q: "配信は exactly-once ですか？",
       a: (
         <>
-          いいえ、<b>at-least-once</b> です。HTTP 送信成功後・ステータス確定前にクラッシュすると、
+          いいえ、<b>at-least-once</b> です。<code>FOR UPDATE SKIP LOCKED</code> により2つの
+          dispatcher が同じ行を同時に掴むことはありませんが、それは「行の claim」の保証であって
+          「配信回数」の保証ではありません。HTTP 送信成功後・ステータス確定前にクラッシュすると、
           可視性タイムアウトの再取得が走った時点で1回だけ再配信されます。二重書き込み防止（幻の/消えた
           Webhook が無い）は厳密ですが、<i>ネットワーク配信</i>は、誠実な Webhook システムと同様に
           at-least-once です。
@@ -219,26 +299,39 @@ const ja: FaqCopy = {
       ),
     },
     {
+      id: "dedup",
       q: "では exactly-once の「効果」はどう得る？",
       a: (
         <>
           受信側で重複排除します。各配信は安定した <code>webhook-id</code>（と任意の{" "}
-          <code>idempotency-key</code>）を持つので、それを記録して再送を無視します。
+          <code>idempotency-key</code>）を持つので、それを記録して再送を無視します。この id は
+          outbox 行の id そのものなので、リトライでも上記のクラッシュ再配信でも変わりません —
+          at-least-once が「正直なだけ」でなく実用に耐えるのはこのためです。1点だけ例外があり、
+          <code>relay.replay()</code> は新しい id の行として再投入するので、リプレイされたイベントは
+          意図的に <code>webhook-id</code> では重複排除されません。
           <a href="/demo">ライブデモ</a>では自前 receiver がまさにこれを行います。
         </>
       ),
     },
     {
+      id: "ordering",
       q: "イベントは順序保証されますか？",
       a: (
         <>
-          既定では保証しません（各配信は独立）。エンドポイント単位の FIFO は{" "}
+          <b>既定では保証しません。</b>dispatcher は古い順にバッチで claim した後、それを並列に配信
+          するので、配信はレースし順序が入れ替わり得ます。エンドポイント単位の FIFO は{" "}
           <code>createDispatcher(&#123; ordering: "per-endpoint" &#125;)</code>{" "}
-          でオプトイン。厳密な全順序が要るなら明示的に設計してください。
+          でオプトインできますが、重要な注意が1つ: 直列化されるのは<b>登録済み</b>
+          エンドポイントだけです。インラインの <code>endpoint: &#123; url, secret &#125;</code> で
+          enqueue している場合 — 本 FAQ の例の多くが使っている手軽な経路で、このデモ自身もそうです —
+          オプトインしても何も変わりません。先にエンドポイントを登録し （
+          <a href="#endpoints">id で指定する方法</a>を参照）、その上でオプトインしてください。
+          厳密な全順序が要るなら明示的に設計してください。
         </>
       ),
     },
     {
+      id: "serverless",
       q: "サーバレスで常駐プロセスがありません。使えますか？",
       a: (
         <>
@@ -250,16 +343,19 @@ const ja: FaqCopy = {
       ),
     },
     {
+      id: "poll-latency",
       q: "約1秒のポーリングは遅くないですか？",
       a: (
         <>
-          既定では dispatcher
-          は約1秒のポーリングで起きます。より低いレイテンシが要るときは、オプションの{" "}
-          <code>commitcourier/accelerator/pg</code> アクセラレータを繋ぎます。COMMIT
-          時のトランザクショナルな <code>pg_notify</code> が Postgres の LISTEN/NOTIFY
-          経由で待機中の dispatcher を即座に起こすので、
-          次のポーリングを待たずに配信が始まります。best-effort で、wake
-          を取りこぼしてもポーリングに フォールバックするだけで、行は失われません。
+          <code>pollIntervalMs</code>（既定 1000）は<i>上限</i>であって、固定の刻みではありません。
+          アイドル時の sleep は約 50ms から始まり、キューが空のままのときだけ上限に向かって倍増し、
+          行が見つかった瞬間に元に戻ります。つまり滞留分は 1 パスあたり約 50ms
+          で捌け、まるまる1秒を払うのはアイドルのときです。最初の1件すらポーリングを待たせたくない
+          場合は、オプションの <code>commitcourier/accelerator/pg</code> アクセラレータを繋ぎます。
+          COMMIT 時のトランザクショナルな <code>pg_notify</code> が Postgres の LISTEN/NOTIFY
+          経由で待機中の dispatcher を即座に起こします。best-effort で、wake
+          を取りこぼしてもポーリングにフォールバックするだけで、行は失われません。
+          （このサイトは繋いでいません。デモでは正直な既定値を見せる方が有益なので。）
           <div style={{ marginTop: 10 }}>
             <CodeBlock code={ACCEL} />
           </div>
@@ -267,6 +363,7 @@ const ja: FaqCopy = {
       ),
     },
     {
+      id: "scale",
       q: "スケールしますか？ dispatcher を複数動かせますか？",
       a: (
         <>
@@ -277,6 +374,7 @@ const ja: FaqCopy = {
       ),
     },
     {
+      id: "endpoints",
       q: "enqueue のたびに URL とシークレットを直書きする必要がありますか？",
       a: (
         <>
@@ -292,6 +390,7 @@ const ja: FaqCopy = {
       ),
     },
     {
+      id: "svix-sink",
       q: "すでに Svix / Webhook SaaS を使っています。CommitCourier で自前 HTTP 送信の代わりに SaaS へ渡せますか？",
       a: (
         <>
@@ -310,6 +409,34 @@ const ja: FaqCopy = {
       ),
     },
     {
+      id: "vs-postel",
+      q: "これは Postel と同じ主張では？",
+      a: (
+        <>
+          おおむねその通りです。そしてこれは比較する価値のある相手なので、訊かれる前に書いておきます。
+          <a href={POSTEL}>Postel</a> は、ほぼ同一の主張を持つ埋め込み型ライブラリです:
+          トランザクショナル outbox、署名、リトライ、dead-letter、リプレイ、Redis
+          もブローカーも不要。存在しないふりはしません。
+          <div style={{ marginTop: 10 }}>
+            向こうの方が広く構えています。Postgres を超えて SQLite に届き、送信だけでなく inbound の
+            <i>受信</i>も扱い、CommitCourier が HMAC-SHA256 のみなのに対して Ed25519 で署名し JWKS
+            を公開し、こちらが Node 一本なのに対して polyglot のロードマップを持っています。
+            これらが要るなら Postel を使ってください — 建前ではなく本心です。
+          </div>
+          <div style={{ marginTop: 10 }}>
+            CommitCourier はその広さを捨てて、1つのデータベースへの深さと交換しています: 既定で ON
+            の SSRF 保護、シークレットの at-rest 暗号化、エンドポイントのサーキット
+            ブレーカー、OpenTelemetry、LISTEN/NOTIFY アクセラレータ、<code>pg</code> / Knex /
+            Drizzle / Prisma アダプタ、<code>doctor</code> CLI、DLQ の調査とリプレイ、そして SaaS
+            への<a href="#svix-sink">ハンドオフ</a>。成熟度についてはどちらも盛るべきではありません:
+            Postel は自ら pre-alpha を名乗り、こちらは <code>0.x</code>
+            で、minor リリースが壊す可能性があります。
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "secrets-at-rest",
       q: "署名シークレットの at-rest 保護は？",
       a: (
         <>
@@ -346,7 +473,9 @@ export function Faq() {
 
       <div className="grid" style={{ gap: 14, marginTop: 8 }}>
         {t.items.map((item) => (
-          <div className="card" key={item.q}>
+          // `id` is the anchor other pages deep-link (e.g. /faq#ordering) and the key: the question
+          // text is localized, so keying on it would remount every card on a locale switch.
+          <div className="card" id={item.id} key={item.id}>
             {/* Each Q&A is a top-level section of this page, so h2 — which also mirrors the
                 FAQPage structured data built from these same items. */}
             <h2 className="card-title">{item.q}</h2>

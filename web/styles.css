@@ -44,6 +44,13 @@ pre {
 }
 
 /* Layout */
+/* Anything deep-linked by fragment (/faq#ordering) has to clear the sticky .nav below, or the
+   heading it scrolls to lands underneath it. Measured: .nav is 95px tall, so this is that plus a
+   little air — keep the two in step. */
+.card[id] {
+  scroll-margin-top: 108px;
+}
+
 .nav {
   position: sticky;
   top: 0;
@@ -332,6 +339,17 @@ p.sub {
 }
 
 /* Tables */
+
+/* Wrap a wide table so IT scrolls sideways and the page body never does. The min-width is what
+   forces the scroll rather than letting columns crush to unreadable; sticky `th` still works,
+   because the wrapper only scrolls on x. */
+.tbl-scroll {
+  overflow-x: auto;
+}
+.tbl-scroll > table.tbl {
+  min-width: 560px;
+}
+
 table.tbl {
   width: 100%;
   border-collapse: collapse;
